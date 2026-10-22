@@ -141,7 +141,7 @@ fun LandscapeStudio(
             engine = engine,
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 10.dp, top = 56.dp, bottom = 86.dp),
+                .padding(start = 10.dp, top = 60.dp, bottom = 90.dp),
             topPadding = 4.dp,
             bottomPadding = 4.dp
         )
@@ -155,7 +155,7 @@ fun LandscapeStudio(
                 onOpenMcp = onOpenMcp,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 10.dp, top = 56.dp, bottom = 86.dp)
+                    .padding(end = 10.dp, top = 60.dp, bottom = 90.dp)
             )
         }
 
@@ -169,7 +169,15 @@ fun LandscapeStudio(
             size = 40.dp,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 8.dp, top = 56.dp, bottom = 86.dp)
+                .padding(
+                    end = when {
+                        !inspectorOpen -> 8.dp
+                        AnyMateMetrics.compact -> 194.dp
+                        else -> 218.dp
+                    },
+                    top = 60.dp,
+                    bottom = 90.dp
+                )
         )
 
         LandscapeTimeline(

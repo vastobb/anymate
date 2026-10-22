@@ -113,7 +113,7 @@ private fun stageInsets(
 ): StageInsets = if (layout == StudioLayout.LANDSCAPE) {
     StageInsets(
         left = if (compact) 56f else 66f,
-        top = if (compact) 50f else 56f,
+        top = if (compact) 52f else 60f,
         right = when {
             !inspectorOpen -> 18f
             compact -> 188f
