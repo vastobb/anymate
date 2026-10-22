@@ -33,7 +33,6 @@ jobs:
         run: |
           SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n 1)"
           if [ -z "$SDKMANAGER" ]; then echo "sdkmanager not found"; exit 1; fi
-          chmod +x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
