@@ -104,7 +104,9 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         if (restored) {
             notice = Notice(System.nanoTime(), "Restored \"${engine.projectName}\" from your last session")
         }
-        startAutosaveLoop()        chat.add(
+        startAutosaveLoop()
+
+        chat.add(
             ChatMessage(
                 id = ++chatId,
                 role = ChatRole.ASSISTANT,
