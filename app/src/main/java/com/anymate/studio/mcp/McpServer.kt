@@ -260,15 +260,18 @@ class McpServer(
             )
         }
         val files = HashMap<String, String>()
-        try {
-            session.parseBody(files)
-        } catch (t: Throwable) {
-            return newFixedLengthResponse(
-                NanoHTTPD.Response.Status.BAD_REQUEST, "application/json",
-                """{"error":"${escape(t.message ?: "Could not read request body")}"}"""
-            )
+        var body = ""
+        if (contentLength in 1..(8L * 1024 * 1024)) {
+            body = readBody(session, contentLength)
         }
-        val body = files["postData"] ?: ""
+        if (body.isBlank()) {
+            try {
+                session.parseBody(files)
+            } catch (t: Throwable) {
+                // fall through to the empty-body response
+            }
+            body = files["postData"] ?: ""
+        }
         if (body.isBlank()) {
             return newFixedLengthResponse(
                 NanoHTTPD.Response.Status.BAD_REQUEST, "application/json",
@@ -561,6 +564,23 @@ class McpServer(
         bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, png)
         bitmap.recycle()
         return png.toByteArray()
+    }
+
+    private fun readBody(session: NanoHTTPD.IHTTPSession, length: Long): String {
+        return try {
+            val buffer = ByteArray(8192)
+            val out = java.io.ByteArrayOutputStream()
+            var remaining = length
+            while (remaining > 0) {
+                val read = session.inputStream.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+                if (read <= 0) break
+                out.write(buffer, 0, read)
+                remaining -= read
+            }
+            out.toString("UTF-8")
+        } catch (_: Throwable) {
+            ""
+        }
     }
 
     private fun authorized(session: NanoHTTPD.IHTTPSession): Boolean {

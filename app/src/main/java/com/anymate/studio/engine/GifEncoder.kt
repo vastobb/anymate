@@ -209,12 +209,16 @@ class GifEncoder(
                     prefix = existing
                 } else {
                     emit(prefix)
+                    // GIF LZW: the code width grows one code *after* the table
+                    // reaches 2^codeSize. The check must happen before the entry
+                    // is added, exactly like the reference encoders, otherwise
+                    // decoders desynchronise and the file cannot be read.
+                    if (nextCode > (1 shl codeSize) - 1 && codeSize < 12) {
+                        codeSize++
+                    }
                     if (nextCode < 4096) {
                         dictionary[key] = nextCode
                         nextCode++
-                        if (nextCode > (1 shl codeSize) - 1 && codeSize < 12) {
-                            codeSize++
-                        }
                     } else {
                         emit(clear)
                         dictionary.clear()
@@ -225,6 +229,9 @@ class GifEncoder(
                 }
             }
             emit(prefix)
+            if (nextCode > (1 shl codeSize) - 1 && codeSize < 12) {
+                codeSize++
+            }
         }
         emit(end)
         if (bitCount > 0) bytes.write(bitBuffer and 0xFF)
