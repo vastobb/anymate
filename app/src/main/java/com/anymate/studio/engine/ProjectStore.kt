@@ -204,13 +204,13 @@ class ProjectStore(
     }
 
     // ---- IO ----------------------------------------------------------------
-    fun saveAutosave(): Boolean = writeTo(autosaveFile)
+    fun saveAutosave(snapshot: ProjectFile = capture()): Boolean = writeTo(autosaveFile, snapshot)
 
-    fun writeTo(target: File): Boolean {
+    fun writeTo(target: File, snapshot: ProjectFile = capture()): Boolean {
         return try {
             target.parentFile?.mkdirs()
             val temp = File(target.parentFile, target.name + ".tmp")
-            temp.writeText(json.encodeToString(ProjectFile.serializer(), capture()))
+            temp.writeText(json.encodeToString(ProjectFile.serializer(), snapshot))
             if (target.exists()) target.delete()
             temp.renameTo(target)
             true
@@ -220,18 +220,22 @@ class ProjectStore(
     }
 
     fun readFrom(source: File): Boolean {
+        val file = readFile(source) ?: return false
+        return restore(file)
+    }
+
+    /** Decodes a project file. Safe to call from a background thread. */
+    fun readFile(source: File = autosaveFile): ProjectFile? {
         return try {
-            val text = source.readText()
-            val file = json.decodeFromString(ProjectFile.serializer(), text)
-            restore(file)
+            if (!source.exists() || source.length() < 32) return null
+            json.decodeFromString(ProjectFile.serializer(), source.readText())
         } catch (_: Throwable) {
-            false
+            null
         }
     }
 
     fun readAutosave(): Boolean {
-        val file = autosaveFile
-        if (!file.exists() || file.length() < 32) return false
-        return readFrom(file)
+        val file = readFile(autosaveFile) ?: return false
+        return restore(file)
     }
 }

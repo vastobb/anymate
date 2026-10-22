@@ -104,8 +104,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         if (restored) {
             notice = Notice(System.nanoTime(), "Restored \"${engine.projectName}\" from your last session")
         }
-        startAutosaveLoop()
-        chat.add(
+        startAutosaveLoop()        chat.add(
             ChatMessage(
                 id = ++chatId,
                 role = ChatRole.ASSISTANT,
@@ -122,7 +121,9 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 val revision = engine.revision
                 delay(400)
                 if (engine.revision == revision) {
-                    withContext(Dispatchers.IO) { projectStore.saveAutosave() }
+                    // Capture on the main thread, then write off it.
+                    val snapshot = projectStore.capture()
+                    withContext(Dispatchers.IO) { projectStore.saveAutosave(snapshot) }
                 }
             }
         }
@@ -360,11 +361,12 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     /** Writes the editable document to a shareable .anymate file. */
     fun shareProject() {
         viewModelScope.launch {
+            val snapshot = projectStore.capture()
             val file = withContext(Dispatchers.IO) {
                 val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
                     .format(java.util.Date())
                 val target = java.io.File(exporter.exportsDir, "anymate_project_$stamp.anymate")
-                if (projectStore.writeTo(target)) target else null
+                if (projectStore.writeTo(target, snapshot)) target else null
             }
             if (file == null) {
                 notify("Could not write the project file")
