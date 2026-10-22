@@ -13,8 +13,8 @@ android {
         applicationId = "com.anymate.studio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.2.0"
+        versionCode = 122
+        versionName = "1.2.2"
         vectorDrawables { useSupportLibrary = true }
     }
 
