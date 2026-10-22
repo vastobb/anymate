@@ -47,16 +47,21 @@ jobs:
 
       - name: Stage APKs
         run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/AnyMate-${{ github.sha }}-debug.apk"
-          cp app/build/outputs/apk/release/app-release.apk "dist/AnyMate-${{ github.sha }}.apk"
-          ls -lh dist
+          mkdir -p dist/debug dist/release
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            RELEASE_NAME="AnyMate-${{ github.ref_name }}.apk"
+          else
+            RELEASE_NAME="AnyMate-${{ github.sha }}.apk"
+          fi
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/debug/AnyMate-debug.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/release/$RELEASE_NAME"
+          ls -lh dist/debug dist/release
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: AnyMate-debug-apk
-          path: dist/*debug.apk
+          path: dist/debug/AnyMate-debug.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -64,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AnyMate-apk
-          path: dist/AnyMate-${{ github.sha }}.apk
+          path: dist/release/AnyMate-*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -74,9 +79,17 @@ jobs:
         with:
           name: AnyMate ${{ github.ref_name }}
           body: |
-            AnyMate 2D animation studio for Android.
+            **AnyMate** — a 2D animation studio for Android that you and your AI agent drive together.
 
-            **Install:** download `AnyMate.apk` below and sideload it (allow install from this source).
-            The APK is signed with the CI debug key for easy testing.
-          files: dist/AnyMate-${{ github.sha }}.apk
+            • Touch-first studio: pencil, ink pen, brush, eraser, flood fill, shapes, type, layers, onion skin
+            • 12 / 24 / 30 / 60 fps playback, built to absorb 60+ frame writes per second
+            • A real **MCP server** inside the app — every drawing, frame and export tool is exposed to any agent
+            • An **AI Director** that paints each frame live on your canvas (offline templates, or your own model)
+            • Animated GIF / PNG / PNG-sequence export, plus shareable `.anymate` project files
+
+            **Install:** download the APK below and sideload it (allow "install from unknown sources").
+            The CI build is signed with the CI debug key for easy testing.
+
+            Docs: https://github.com/vastobb/anymate/blob/main/docs/MCP.md
+          files: dist/release/AnyMate-*.apk
           generate_release_notes: true
