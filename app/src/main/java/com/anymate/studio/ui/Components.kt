@@ -375,6 +375,7 @@ fun BrandMark(size: Dp = 30.dp, modifier: Modifier = Modifier) {
 @Composable
 fun LiveDot(color: Color = Success, size: Dp = 7.dp) {
     val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "live-dot")
+    val alpha by transition.animateFloat(
         initialValue = 1f,
         targetValue = 0.35f,
         animationSpec = androidx.compose.animation.core.infiniteRepeatable(
