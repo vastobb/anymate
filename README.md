@@ -8,6 +8,9 @@
 
 One canvas. Real drawing tools. A built-in MCP server. An AI director that paints every frame live.
 
+[![Build AnyMate APK](https://github.com/vastobb/anymate/actions/workflows/build.yml/badge.svg)](https://github.com/vastobb/anymate/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/vastobb/anymate.svg)](https://github.com/vastobb/anymate/releases/latest)
+
 </div>
 
 ---
@@ -61,6 +64,7 @@ adb reverse tcp:8420 tcp:8420
 
 The MCP server starts automatically with the app (port **8420**). Open
 **AnyMate → Settings → MCP server** to see the URL, the bearer token and to rotate the token.
+Full details, curl examples and client configs live in **[docs/MCP.md](docs/MCP.md)**.
 
 ```
 MCP URL     http://<phone-ip>:8420/mcp
