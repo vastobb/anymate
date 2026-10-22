@@ -1,0 +1,81 @@
+name: Build AnyMate APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compile APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platforms
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build debug + release APKs
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug :app:assembleRelease
+
+      - name: Stage APKs
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/AnyMate-${{ github.sha }}-debug.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/AnyMate-${{ github.sha }}.apk"
+          ls -lh dist
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyMate-debug-apk
+          path: dist/*debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyMate-apk
+          path: dist/AnyMate-${{ github.sha }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AnyMate ${{ github.ref_name }}
+          body: |
+            AnyMate 2D animation studio for Android.
+
+            **Install:** download `AnyMate.apk` below and sideload it (allow install from this source).
+            The APK is signed with the CI debug key for easy testing.
+          files: dist/AnyMate-${{ github.sha }}.apk
+          generate_release_notes: true
