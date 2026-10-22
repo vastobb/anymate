@@ -85,6 +85,7 @@ import com.anymate.studio.ui.theme.TextSecondary
 import com.anymate.studio.ui.theme.Violet
 import com.anymate.studio.ui.theme.ThemeKind
 import com.anymate.studio.util.toComposeColor
+import com.anymate.studio.util.toHex
 import kotlinx.coroutines.delay
 
 /**
@@ -347,7 +348,7 @@ private fun InspectorPanel(
             }
             Spacer(Modifier.height(5.dp))
             Text(
-                engine.strokeColor.toString().let { String.format("#%08X", it) }.takeLast(6),
+                engine.strokeColor.toHex(),
                 color = TextMuted,
                 fontFamily = Mono,
                 fontSize = 9.sp
