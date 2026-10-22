@@ -218,21 +218,21 @@ class AnimationEngine {
         projectName = name.ifBlank { "Untitled" }
     }
 
-    fun setFps(value: Int) {
+    fun updateFps(value: Int) {
         fps = value.coerceIn(1, 60)
     }
 
-    fun setBackground(color: Long) {
+    fun updateBackground(color: Long) {
         background = color
         revision++
         thumbnailEpoch++
     }
 
-    fun setLoop(value: Boolean) {
+    fun updateLoop(value: Boolean) {
         loop = value
     }
 
-    fun setOnionSkin(value: Boolean) {
+    fun updateOnionSkin(value: Boolean) {
         onionSkin = value
         revision++
     }
@@ -256,13 +256,13 @@ class AnimationEngine {
         revision++
     }
 
-    fun setBrushSize(value: Float) {
+    fun updateBrushSize(value: Float) {
         val range = sizeRangeFor(selectedTool)
         brushSize = value.coerceIn(range.start, range.endInclusive)
         toolSizes[selectedTool] = brushSize
     }
 
-    fun setBrushOpacity(value: Float) {
+    fun updateBrushOpacity(value: Float) {
         brushOpacity = value.coerceIn(0.02f, 1f)
     }
 
@@ -270,17 +270,17 @@ class AnimationEngine {
         strokeColor = color
     }
 
-    fun setShapeKind(kind: ShapeKind) {
+    fun updateShapeKind(kind: ShapeKind) {
         shapeKind = kind
         selectedTool = ToolType.SHAPE
     }
 
-    fun setShapeFilled(value: Boolean) {
+    fun updateShapeFilled(value: Boolean) {
         shapeFilled = value
     }
 
     // ---- View -------------------------------------------------------------
-    fun setZoom(value: Float) {
+    fun updateZoom(value: Float) {
         zoom = value.coerceIn(0.5f, 8f)
     }
 
@@ -825,14 +825,14 @@ class AnimationEngine {
     }
 
     // ---- Agent feed -------------------------------------------------------
-    fun setAgentBusy(busy: Boolean, label: String = agentLabel) {
+    fun setAgentRunning(busy: Boolean, label: String = agentLabel) {
         agentBusy = busy
         agentLabel = label
         if (!busy) agentProgress = 0f
         revision++
     }
 
-    fun setAgentProgress(progress: Float, label: String? = null) {
+    fun updateAgentProgress(progress: Float, label: String? = null) {
         agentProgress = progress.coerceIn(0f, 1f)
         if (label != null) agentLabel = label
         lastToolAt = System.currentTimeMillis()

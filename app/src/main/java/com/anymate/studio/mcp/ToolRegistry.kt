@@ -224,7 +224,7 @@ class ToolRegistry(
             "Set playback FPS (1-60). Standard choices are 12, 24, 30 and 60.",
             schema("fps" to int("Frames per second", 1.0, 60.0), required = listOf("fps"))
         ) { args ->
-            engine.setFps(args.requireInt("fps"))
+            engine.updateFps(args.requireInt("fps"))
             ToolResult("Project is now ${engine.fps} fps.")
         }
 
@@ -233,7 +233,7 @@ class ToolRegistry(
             "Set the canvas background colour.",
             schema("color" to str("#RRGGBB or #AARRGGBB"), required = listOf("color"))
         ) { args ->
-            engine.setBackground(args.requireColor("color"))
+            engine.updateBackground(args.requireColor("color"))
             ToolResult("Background set to ${engine.background.toHex()}.")
         }
 
@@ -378,8 +378,8 @@ class ToolRegistry(
             val tool = ToolType.entries.firstOrNull { it.name == toolName }
                 ?: throw IllegalArgumentException("Unknown tool. Use one of ${ToolType.entries.joinToString()}")
             engine.selectTool(tool)
-            args.float("size")?.let { engine.setBrushSize(it) }
-            args.float("opacity")?.let { engine.setBrushOpacity(it) }
+            args.float("size")?.let { engine.updateBrushSize(it) }
+            args.float("opacity")?.let { engine.updateBrushOpacity(it) }
             args.string("shape")?.let { shape ->
                 val kind = when (shape.lowercase()) {
                     "line" -> ShapeKind.LINE
@@ -387,9 +387,9 @@ class ToolRegistry(
                     "arrow" -> ShapeKind.ARROW
                     else -> ShapeKind.ELLIPSE
                 }
-                engine.setShapeKind(kind)
+                engine.updateShapeKind(kind)
             }
-            args.bool("shape_filled")?.let { engine.setShapeFilled(it) }
+            args.bool("shape_filled")?.let { engine.updateShapeFilled(it) }
             ToolResult("Active tool: ${engine.selectedTool.name.lowercase()}, size ${engine.brushSize}.")
         }
 
@@ -607,7 +607,7 @@ class ToolRegistry(
             "Enable or disable looped playback.",
             schema("enabled" to bool("Loop"), required = listOf("enabled"))
         ) { args ->
-            engine.setLoop(args.bool("enabled") ?: true)
+            engine.updateLoop(args.bool("enabled") ?: true)
             ToolResult("Loop = ${engine.loop}.")
         }
         tool(
@@ -615,7 +615,7 @@ class ToolRegistry(
             "Toggle onion skin on the artist's canvas.",
             schema("enabled" to bool("Onion skin"), required = listOf("enabled"))
         ) { args ->
-            engine.setOnionSkin(args.bool("enabled") ?: true)
+            engine.updateOnionSkin(args.bool("enabled") ?: true)
             ToolResult("Onion skin = ${engine.onionSkin}.")
         }
 
@@ -658,7 +658,7 @@ class ToolRegistry(
             schema("max_size" to int("Longest edge 240-1080", 240.0, 1080.0))
         ) { args ->
             val progress: suspend (Float, String) -> Unit = { p, label ->
-                withContext(Dispatchers.Main) { engine.setAgentProgress(p, label) }
+                withContext(Dispatchers.Main) { engine.updateAgentProgress(p, label) }
             }
             val file = exporter.exportGif(engine, args.int("max_size") ?: 720, progress)
             ToolResult(exportMessage(file, "GIF"))
@@ -670,7 +670,7 @@ class ToolRegistry(
             obj()
         ) { _ ->
             val progress: suspend (Float, String) -> Unit = { p, label ->
-                withContext(Dispatchers.Main) { engine.setAgentProgress(p, label) }
+                withContext(Dispatchers.Main) { engine.updateAgentProgress(p, label) }
             }
             val file = exporter.exportPng(engine, progress)
             ToolResult(exportMessage(file, "PNG"))
@@ -682,7 +682,7 @@ class ToolRegistry(
             obj()
         ) { _ ->
             val progress: suspend (Float, String) -> Unit = { p, label ->
-                withContext(Dispatchers.Main) { engine.setAgentProgress(p, label) }
+                withContext(Dispatchers.Main) { engine.updateAgentProgress(p, label) }
             }
             val file = exporter.exportZip(engine, progress)
             ToolResult(exportMessage(file, "PNG sequence ZIP"))
@@ -699,22 +699,22 @@ class ToolRegistry(
                 required = listOf("prompt")
             )
         ) { args ->
-            args.int("fps")?.let { engine.setFps(it) }
-            engine.setAgentBusy(true, "Director · generating live")
+            args.int("fps")?.let { engine.updateFps(it) }
+            engine.setAgentRunning(true, "Director · generating live")
             try {
                 val result = Director.animate(
                     prompt = args.requireString("prompt"),
                     engine = engine,
                     pace = args.bool("pace") ?: true
                 ) { done, total ->
-                    engine.setAgentProgress(done.toFloat() / total, "Directing frame $done/$total")
+                    engine.updateAgentProgress(done.toFloat() / total, "Directing frame $done/$total")
                 }
                 ToolResult(
                     "Director created \"${result.label}\": ${result.frameCount} frames at ${result.fps} fps, " +
                         "starting at frame ${result.startFrame}. Playback is live."
                 )
             } finally {
-                engine.setAgentBusy(false)
+                engine.setAgentRunning(false)
             }
         }
 

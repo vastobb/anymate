@@ -84,7 +84,7 @@ fun SettingsSheet(
                 title = "Enable MCP",
                 subtitle = "Let Claude, Cursor, VS Code or a custom agent drive this canvas",
                 checked = vm.mcpEnabled,
-                onCheckedChange = { vm.setMcpEnabled(it) }
+                onCheckedChange = { vm.updateMcpEnabled(it) }
             )
             Spacer(Modifier.height(8.dp))
             Row(
@@ -186,7 +186,7 @@ fun SettingsSheet(
                 title = "Local Director (offline)",
                 subtitle = "Built-in motion templates — no key, no network. Turn off to connect a model.",
                 checked = vm.agentOffline,
-                onCheckedChange = { vm.setAgentOffline(it) }
+                onCheckedChange = { vm.updateAgentOffline(it) }
             )
             if (!vm.agentOffline) {
                 Spacer(Modifier.height(10.dp))
@@ -194,16 +194,16 @@ fun SettingsSheet(
                     StudioChip(
                         text = "OpenAI",
                         onClick = {
-                            vm.setAgentEndpoint("https://api.openai.com/v1")
-                            vm.setAgentModel("gpt-4o-mini")
+                            vm.updateAgentEndpoint("https://api.openai.com/v1")
+                            vm.updateAgentModel("gpt-4o-mini")
                         },
                         modifier = Modifier.weight(1f)
                     )
                     StudioChip(
                         text = "OpenRouter",
                         onClick = {
-                            vm.setAgentEndpoint("https://openrouter.ai/api/v1")
-                            vm.setAgentModel("openai/gpt-4o-mini")
+                            vm.updateAgentEndpoint("https://openrouter.ai/api/v1")
+                            vm.updateAgentModel("openai/gpt-4o-mini")
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -213,16 +213,16 @@ fun SettingsSheet(
                     StudioChip(
                         text = "Ollama (LAN)",
                         onClick = {
-                            vm.setAgentEndpoint("http://192.168.1.2:11434/v1")
-                            vm.setAgentModel("llama3.2")
+                            vm.updateAgentEndpoint("http://192.168.1.2:11434/v1")
+                            vm.updateAgentModel("llama3.2")
                         },
                         modifier = Modifier.weight(1f)
                     )
                     StudioChip(
                         text = "Groq",
                         onClick = {
-                            vm.setAgentEndpoint("https://api.groq.com/openai/v1")
-                            vm.setAgentModel("llama-3.3-70b-versatile")
+                            vm.updateAgentEndpoint("https://api.groq.com/openai/v1")
+                            vm.updateAgentModel("llama-3.3-70b-versatile")
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -279,19 +279,19 @@ fun SettingsSheet(
                 title = "Loop playback",
                 subtitle = "Restart from frame 1 at the end",
                 checked = engine.loop,
-                onCheckedChange = { vm.setLoop(it) }
+                onCheckedChange = { vm.updateLoop(it) }
             )
             ToggleRow(
                 title = "Onion skin",
                 subtitle = "Ghost previous and next frames while drawing",
                 checked = engine.onionSkin,
-                onCheckedChange = { vm.setOnion(it) }
+                onCheckedChange = { vm.updateOnion(it) }
             )
             ToggleRow(
                 title = "Performance HUD",
                 subtitle = "Show live render FPS on the canvas",
                 checked = vm.perfHud,
-                onCheckedChange = { vm.setPerfHud(it) }
+                onCheckedChange = { vm.updatePerfHud(it) }
             )
             Spacer(Modifier.height(8.dp))
             Row(

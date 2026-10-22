@@ -89,8 +89,8 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     init {
-        engine.setLoop(prefs.loopPlayback)
-        engine.setOnionSkin(prefs.onionSkin)
+        engine.updateLoop(prefs.loopPlayback)
+        engine.updateOnionSkin(prefs.onionSkin)
         if (prefs.mcpEnabled) {
             val started = server.startServer()
             if (!started) {
@@ -114,7 +114,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         trimChat()
         thinking = true
         agentStatus = if (agentOffline) "Local Director" else "Thinking"
-        engine.setAgentBusy(true, agentStatus)
+        engine.setAgentRunning(true, agentStatus)
         agentJob = viewModelScope.launch {
             try {
                 if (agentOffline) runLocalDirector(prompt) else runModelAgent(prompt)
@@ -136,18 +136,18 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             } finally {
                 thinking = false
                 agentStatus = ""
-                engine.setAgentBusy(false)
+                engine.setAgentRunning(false)
                 trimChat()
             }
         }
     }
 
     private suspend fun runLocalDirector(prompt: String) {
-        engine.setAgentBusy(true, "Local Director")
+        engine.setAgentRunning(true, "Local Director")
         engine.beginUndoGroup("AI · local director")
         try {
             val result = Director.animate(prompt, engine) { done, total ->
-                engine.setAgentProgress(done.toFloat() / total, "Directing frame $done/$total")
+                engine.updateAgentProgress(done.toFloat() / total, "Directing frame $done/$total")
                 agentStatus = "Directing frame $done/$total"
             }
             engine.logTool(
@@ -163,17 +163,17 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             )
         } finally {
             engine.endUndoGroup()
-            engine.setAgentBusy(false)
+            engine.setAgentRunning(false)
         }
     }
 
     private suspend fun runModelAgent(prompt: String) {
-        engine.setAgentBusy(true, "Thinking with ${agentModel.ifBlank { "your model" }}")
+        engine.setAgentRunning(true, "Thinking with ${agentModel.ifBlank { "your model" }}")
         agentStatus = "Thinking with $agentModel"
         val agent = AiAgent(prefs, registry)
         val result = agent.run(prompt) { status ->
             mainHandler.post {
-                engine.setAgentBusy(true, status)
+                engine.setAgentRunning(true, status)
                 agentStatus = status
             }
         }
@@ -181,7 +181,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             "\n\n_${result.toolCalls} tool calls · ${result.steps} model turns · all changes are live on the canvas._"
         } else ""
         chat.add(ChatMessage(++chatId, ChatRole.ASSISTANT, result.text + suffix))
-        engine.setAgentBusy(false)
+        engine.setAgentRunning(false)
     }
 
     fun stopAgent() {
@@ -206,7 +206,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- Settings ---------------------------------------------------------
-    fun setMcpEnabled(enabled: Boolean) {
+    fun updateMcpEnabled(enabled: Boolean) {
         mcpEnabled = enabled
         prefs.mcpEnabled = enabled
         if (enabled) {
@@ -225,38 +225,38 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         notice = Notice(System.nanoTime(), "New MCP token generated")
     }
 
-    fun setAgentEndpoint(value: String) {
+    fun updateAgentEndpoint(value: String) {
         agentEndpoint = value
         prefs.agentEndpoint = value
     }
 
-    fun setAgentModel(value: String) {
+    fun updateAgentModel(value: String) {
         agentModel = value
         prefs.agentModel = value
     }
 
-    fun setAgentKey(value: String) {
+    fun updateAgentKey(value: String) {
         agentKey = value
         prefs.agentKey = value
     }
 
-    fun setAgentOffline(value: Boolean) {
+    fun updateAgentOffline(value: Boolean) {
         agentOffline = value
         prefs.agentOffline = value
     }
 
-    fun setPerfHud(value: Boolean) {
+    fun updatePerfHud(value: Boolean) {
         perfHud = value
         prefs.perfHud = value
     }
 
-    fun setLoop(value: Boolean) {
-        engine.setLoop(value)
+    fun updateLoop(value: Boolean) {
+        engine.updateLoop(value)
         prefs.loopPlayback = value
     }
 
-    fun setOnion(value: Boolean) {
-        engine.setOnionSkin(value)
+    fun updateOnion(value: Boolean) {
+        engine.updateOnionSkin(value)
         prefs.onionSkin = value
     }
 

@@ -88,7 +88,7 @@ fun QuickToolBar(
                 }
                 StudioSlider(
                     value = engine.brushSize,
-                    onValueChange = { engine.setBrushSize(it) },
+                    onValueChange = { engine.updateBrushSize(it) },
                     range = engine.sizeRangeFor(),
                     modifier = Modifier.fillMaxWidth(),
                     activeColor = Violet
@@ -114,7 +114,7 @@ fun QuickToolBar(
                     }
                     StudioSlider(
                         value = engine.brushOpacity,
-                        onValueChange = { engine.setBrushOpacity(it) },
+                        onValueChange = { engine.updateBrushOpacity(it) },
                         range = 0.02f..1f,
                         modifier = Modifier.fillMaxWidth(),
                         activeColor = Cyan

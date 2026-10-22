@@ -166,7 +166,7 @@ fun Timeline(
                                 )
                             },
                             onClick = {
-                                engine.setFps(option)
+                                engine.updateFps(option)
                                 fpsMenu = false
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }

@@ -89,7 +89,7 @@ fun ToolSettingsSheet(
                     }
                     StudioSlider(
                         value = engine.brushSize,
-                        onValueChange = { engine.setBrushSize(it) },
+                        onValueChange = { engine.updateBrushSize(it) },
                         range = engine.sizeRangeFor(tool),
                         activeColor = Violet
                     )
@@ -104,7 +104,7 @@ fun ToolSettingsSheet(
             }
             StudioSlider(
                 value = engine.brushOpacity,
-                onValueChange = { engine.setBrushOpacity(it) },
+                onValueChange = { engine.updateBrushOpacity(it) },
                 range = 0.02f..1f,
                 modifier = Modifier.fillMaxWidth(),
                 activeColor = com.anymate.studio.ui.theme.Cyan
@@ -128,7 +128,7 @@ fun ToolSettingsSheet(
                             StudioChip(
                                 text = label,
                                 selected = engine.shapeKind == kind,
-                                onClick = { engine.setShapeKind(kind) },
+                                onClick = { engine.updateShapeKind(kind) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -140,7 +140,7 @@ fun ToolSettingsSheet(
                 title = "Fill shape",
                 subtitle = "Uses the active colour as a solid fill",
                 checked = engine.shapeFilled,
-                onCheckedChange = { engine.setShapeFilled(it) }
+                onCheckedChange = { engine.updateShapeFilled(it) }
             )
         }
 

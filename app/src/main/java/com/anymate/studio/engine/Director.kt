@@ -58,7 +58,7 @@ object Director {
         onProgress: (Int, Int) -> Unit = { _, _ -> }
     ): DirectorResult {
         val kind = chooseKind(prompt)
-        parseFps(prompt)?.let { engine.setFps(it) }
+        parseFps(prompt)?.let { engine.updateFps(it) }
         val fps = engine.fps
         val targetCount = (fps * 2).coerceIn(24, 96)
         engine.pause()

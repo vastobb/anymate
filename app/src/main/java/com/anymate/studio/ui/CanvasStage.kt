@@ -207,7 +207,7 @@ fun CanvasStage(
                             (centroid.x - old.left) / old.scale,
                             (centroid.y - old.top) / old.scale
                         )
-                        engine.setZoom(targetZoom)
+                        engine.updateZoom(targetZoom)
                         val availableW = (size.width - leftInset - rightInset).coerceAtLeast(32f)
                         val availableH = (size.height - topInset - bottomInset).coerceAtLeast(32f)
                         val base = min(
@@ -689,7 +689,7 @@ private fun ViewControls(engine: AnimationEngine, modifier: Modifier = Modifier)
                 contentDescription = if (engine.onionSkin) "Hide onion skin" else "Show onion skin",
                 selected = engine.onionSkin,
                 onClick = {
-                    engine.setOnionSkin(!engine.onionSkin)
+                    engine.updateOnionSkin(!engine.onionSkin)
                     haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                 },
                 size = 36.dp
@@ -715,7 +715,7 @@ private fun ViewControls(engine: AnimationEngine, modifier: Modifier = Modifier)
             StudioIconButton(
                 icon = Icons.Rounded.ZoomOut,
                 contentDescription = "Zoom out",
-                onClick = { engine.setZoom(engine.zoom / 1.25f) },
+                onClick = { engine.updateZoom(engine.zoom / 1.25f) },
                 size = 32.dp
             )
             Text(
@@ -729,7 +729,7 @@ private fun ViewControls(engine: AnimationEngine, modifier: Modifier = Modifier)
             StudioIconButton(
                 icon = Icons.Rounded.ZoomIn,
                 contentDescription = "Zoom in",
-                onClick = { engine.setZoom(engine.zoom * 1.25f) },
+                onClick = { engine.updateZoom(engine.zoom * 1.25f) },
                 size = 32.dp
             )
         }
