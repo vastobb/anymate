@@ -423,9 +423,9 @@ class ToolRegistry(
                 "width" to number("Stroke width in px", 0.3, 300.0),
                 "opacity" to number("0..1", 0.0, 1.0),
                 "frame" to int("Frame index; default current", 0.0, 2000.0),
-                "layer" to int("Layer index; default current", 0.0, 100.0)
-            ),
-            required = listOf("points")
+                "layer" to int("Layer index; default current", 0.0, 100.0),
+                required = listOf("points")
+            )
         ) { args ->
             val points = args.points()
             require(points.isNotEmpty()) { "points cannot be empty" }
@@ -460,9 +460,9 @@ class ToolRegistry(
                 "width" to number("Stroke width px", 0.0, 200.0),
                 "opacity" to number("0..1", 0.0, 1.0),
                 "frame" to int("Frame index; default current", 0.0, 2000.0),
-                "layer" to int("Layer index; default current", 0.0, 100.0)
-            ),
-            required = listOf("shape", "x1", "y1", "x2", "y2")
+                "layer" to int("Layer index; default current", 0.0, 100.0),
+                required = listOf("shape", "x1", "y1", "x2", "y2")
+            )
         ) { args ->
             val kind = when (args.requireString("shape").lowercase()) {
                 "line" -> ShapeKind.LINE
@@ -497,9 +497,9 @@ class ToolRegistry(
                 "width" to number("Stroke width px", 0.0, 200.0),
                 "opacity" to number("0..1", 0.0, 1.0),
                 "frame" to int("Frame index; default current", 0.0, 2000.0),
-                "layer" to int("Layer index; default current", 0.0, 100.0)
-            ),
-            required = listOf("points")
+                "layer" to int("Layer index; default current", 0.0, 100.0),
+                required = listOf("points")
+            )
         ) { args ->
             val points = args.points()
             require(points.size >= 2) { "A polygon needs at least two points." }
@@ -525,9 +525,9 @@ class ToolRegistry(
                 "size" to number("Font size px", 4.0, 600.0),
                 "color" to str("Hex colour"),
                 "frame" to int("Frame index; default current", 0.0, 2000.0),
-                "layer" to int("Layer index; default current", 0.0, 100.0)
-            ),
-            required = listOf("text", "x", "y")
+                "layer" to int("Layer index; default current", 0.0, 100.0),
+                required = listOf("text", "x", "y")
+            )
         ) { args ->
             engine.addText(
                 text = args.requireString("text"),
@@ -549,9 +549,9 @@ class ToolRegistry(
                 "color" to str("Fill hex"),
                 "tolerance" to int("Colour tolerance 0..255", 0.0, 255.0),
                 "frame" to int("Frame index; default current", 0.0, 2000.0),
-                "layer" to int("Layer index; default current", 0.0, 100.0)
-            ),
-            required = listOf("x", "y")
+                "layer" to int("Layer index; default current", 0.0, 100.0),
+                required = listOf("x", "y")
+            )
         ) { args ->
             val ok = engine.fillAt(
                 x = args.requireFloat("x"),
@@ -695,9 +695,9 @@ class ToolRegistry(
             schema(
                 "prompt" to str("Creative prompt"),
                 "fps" to int("Optional FPS override (1-60)", 1.0, 60.0),
-                "pace" to bool("Pace frame generation for a visible live build (default true)")
-            ),
-            required = listOf("prompt")
+                "pace" to bool("Pace frame generation for a visible live build (default true)"),
+                required = listOf("prompt")
+            )
         ) { args ->
             args.int("fps")?.let { engine.setFps(it) }
             engine.setAgentBusy(true, "Director · generating live")
@@ -733,9 +733,9 @@ class ToolRegistry(
                         })
                         put("required", JsonArray(listOf(JsonPrimitive("name"))))
                     })
-                }
-            ),
-            required = listOf("calls")
+                },
+                required = listOf("calls")
+            )
         ) { args ->
             val calls = args["calls"]?.jsonArray ?: throw IllegalArgumentException("calls[] is required")
             require(calls.size in 1..400) { "Batch must contain 1-400 calls." }

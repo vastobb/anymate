@@ -1,5 +1,9 @@
 package com.anymate.studio.ui
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -85,6 +89,7 @@ import com.anymate.studio.ui.theme.TextPrimary
 import com.anymate.studio.ui.theme.TextSecondary
 import com.anymate.studio.ui.theme.Violet
 import com.anymate.studio.util.toComposeColor
+import com.anymate.studio.util.toHex
 import kotlin.math.roundToInt
 
 @Composable
@@ -311,7 +316,7 @@ fun ColorSwatch(
                 else Modifier
             )
             .clickable(onClick = onClick)
-            .semantics { role = Role.Button; contentDescription = "Colour ${com.anymate.studio.util.toHex(color)}" }
+            .semantics { role = Role.Button; contentDescription = "Colour ${color.toHex()}" }
     )
 }
 
@@ -374,12 +379,12 @@ fun BrandMark(size: Dp = 30.dp, modifier: Modifier = Modifier) {
 
 @Composable
 fun LiveDot(color: Color = Success, size: Dp = 7.dp) {
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "live-dot")
+    val transition = rememberInfiniteTransition(label = "live-dot")
     val alpha by transition.animateFloat(
         initialValue = 1f,
         targetValue = 0.35f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(850),
+        animationSpec = infiniteRepeatable(
+            animation = tween(850),
             repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "live-alpha"

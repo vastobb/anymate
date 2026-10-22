@@ -64,13 +64,13 @@ fun Long.toHsv(): FloatArray {
 
 /** Perceptual-ish distance used by the colour picker's recents ordering. */
 fun Long.distanceTo(other: Long): Float {
-    val r1 = (this shr 16) and 0xFF
-    val g1 = (this shr 8) and 0xFF
-    val b1 = this and 0xFF
-    val r2 = (other shr 16) and 0xFF
-    val g2 = (other shr 8) and 0xFF
-    val b2 = other and 0xFF
-    return abs(r1 - r2) + abs(g1 - g2) + abs(b1 - b2)
+    val r1 = ((this shr 16) and 0xFF).toInt()
+    val g1 = ((this shr 8) and 0xFF).toInt()
+    val b1 = (this and 0xFF).toInt()
+    val r2 = ((other shr 16) and 0xFF).toInt()
+    val g2 = ((other shr 8) and 0xFF).toInt()
+    val b2 = (other and 0xFF).toInt()
+    return (abs(r1 - r2) + abs(g1 - g2) + abs(b1 - b2)).toFloat()
 }
 
 fun lerpColor(a: Long, b: Long, fraction: Float): Long {

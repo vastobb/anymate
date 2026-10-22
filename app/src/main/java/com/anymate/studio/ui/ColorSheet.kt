@@ -262,9 +262,10 @@ fun ColorSheet(
                 }
         ) {
             drawCheckerboard(Color(0xFF2A2433), Color(0xFF3A3446), 6.dp.toPx())
+            val opaque = color.toComposeColor()
             drawRect(
                 Brush.horizontalGradient(
-                    listOf(color.copy(alpha = 0f), color.copy(alpha = 1f))
+                    listOf(opaque.copy(alpha = 0f), opaque.copy(alpha = 1f))
                 )
             )
             val x = alpha * size.width

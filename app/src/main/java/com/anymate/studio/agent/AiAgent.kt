@@ -8,6 +8,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -240,7 +241,7 @@ class AiAgent(
     }
 
     companion object {
-        const val SYSTEM_PROMPT = """
+        val SYSTEM_PROMPT = """
 You are the director inside AnyMate, a live 2D animation studio running on the artist's Android phone. You and the artist share one canvas: every tool call appears immediately in front of them.
 
 Rules
