@@ -723,8 +723,9 @@ class ToolRegistry(
 
         tool(
             "anymate_batch",
-            "Execute many AnyMate tool calls in one request. Use this for high-throughput agent animation: for example add 60 frames and draw on each in one batch. The whole batch is one undo step. Nested batches are not allowed.",
+            "Execute many AnyMate tool calls in one request. Use this for high-throughput agent animation: for example add 60 frames and draw on each in one batch. The whole batch is one undo step. Nested batches are not allowed. Set pace_ms to let the artist watch the work happen stroke by stroke instead of appearing at once.",
             schema(
+                "pace_ms" to int("Delay between calls in ms, so the drawing appears live (0 = instant)", 0.0, 500.0),
                 "calls" to buildJsonObject {
                     put("type", "array")
                     put("description", "Array of {name, args} calls")
@@ -742,6 +743,7 @@ class ToolRegistry(
         ) { args ->
             val calls = args["calls"]?.jsonArray ?: throw IllegalArgumentException("calls[] is required")
             require(calls.size in 1..400) { "Batch must contain 1-400 calls." }
+            val pace = (args.int("pace_ms") ?: 0).coerceIn(0, 500)
             engine.beginUndoGroup("Agent batch (${calls.size} calls)")
             var ok = 0
             var failed = 0
@@ -757,6 +759,7 @@ class ToolRegistry(
                     }
                     val callArgs = call["args"]?.jsonObject ?: JsonObject(emptyMap())
                     val result = executeInternal(name, callArgs)
+                    if (pace > 0 && i < calls.lastIndex) kotlinx.coroutines.delay(pace.toLong())
                     if (result.isError) {
                         failed++
                         if (errors.size < 6) errors.add("#$i $name: ${result.text.take(140)}")
