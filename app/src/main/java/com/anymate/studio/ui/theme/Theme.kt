@@ -34,7 +34,14 @@ enum class ThemeKind(val label: String, val blurb: String) {
     MIDNIGHT_SLATE(
         "Midnight Slate",
         "Deep blue slate with periwinkle light. Cinematic and late-night."
-    )
+    );
+
+    val palette: AnyMatePalette
+        get() = when (this) {
+            ThemeKind.GRAPHITE -> GraphitePalette
+            ThemeKind.WARM_NEUTRAL -> WarmNeutralPalette
+            ThemeKind.MIDNIGHT_SLATE -> MidnightSlatePalette
+        }
 }
 
 data class AnyMatePalette(
@@ -157,13 +164,6 @@ object AnyMateMetrics {
         this.compact = compact
     }
 }
-
-val ThemeKind.palette: AnyMatePalette
-    get() = when (this) {
-        ThemeKind.GRAPHITE -> GraphitePalette
-        ThemeKind.WARM_NEUTRAL -> WarmNeutralPalette
-        ThemeKind.MIDNIGHT_SLATE -> MidnightSlatePalette
-    }
 
 // ---- Backwards compatible accessors ---------------------------------------
 val Ink950: Color get() = AnyMateColors.active.ink950
