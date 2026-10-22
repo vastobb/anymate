@@ -352,45 +352,57 @@ fun CanvasStage(
                         down.consume()
 
                         var canceledByPinch = false
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.changes.count { it.pressed } >= 2) {
-                                canceledByPinch = true
-                                cancelDraft()
-                                trackPinch(event)
-                                break
-                            }
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            val project = toProject(change.position)
-                            if (!change.pressed) {
-                                if (tool == ToolType.SHAPE) newDraft.end = project
-                                else addPoint(newDraft.points, project, change.pressure)
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.changes.count { it.pressed } >= 2) {
+                                    canceledByPinch = true
+                                    cancelDraft()
+                                    trackPinch(event)
+                                    break
+                                }
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                val project = toProject(change.position)
+                                if (!change.pressed) {
+                                    if (tool == ToolType.SHAPE) newDraft.end = project
+                                    else addPoint(newDraft.points, project, change.pressure)
+                                    draftTick++
+                                    change.consume()
+                                    break
+                                }
+                                if (tool == ToolType.SHAPE) {
+                                    newDraft.end = project
+                                } else {
+                                    addPoint(newDraft.points, project, change.pressure)
+                                }
                                 draftTick++
                                 change.consume()
-                                break
                             }
-                            if (tool == ToolType.SHAPE) {
-                                newDraft.end = project
-                            } else {
-                                addPoint(newDraft.points, project, change.pressure)
-                            }
-                            draftTick++
-                            change.consume()
-                        }
 
-                        draft = null
-                        draftTick++
-                        if (!canceledByPinch && !newDraft.canceled) {
-                            try {
-                                if (tool == ToolType.SHAPE) {
-                                    val dx = newDraft.end.x - newDraft.start.x
-                                    val dy = newDraft.end.y - newDraft.start.y
-                                    if (hypot(dx, dy) > 4f) {
-                                        engine.addShape(
-                                            kind = engine.shapeKind,
-                                            start = Vec2(newDraft.start.x, newDraft.start.y),
-                                            end = Vec2(newDraft.end.x, newDraft.end.y),
-                                            filled = engine.shapeFilled,
+                            if (!canceledByPinch && !newDraft.canceled) {
+                                try {
+                                    if (tool == ToolType.SHAPE) {
+                                        val dx = newDraft.end.x - newDraft.start.x
+                                        val dy = newDraft.end.y - newDraft.start.y
+                                        if (hypot(dx, dy) > 4f) {
+                                            engine.addShape(
+                                                kind = engine.shapeKind,
+                                                start = Vec2(newDraft.start.x, newDraft.start.y),
+                                                end = Vec2(newDraft.end.x, newDraft.end.y),
+                                                filled = engine.shapeFilled,
+                                                color = engine.strokeColor,
+                                                width = engine.brushSize,
+                                                opacity = engine.brushOpacity,
+                                                frameIndex = frameIndex,
+                                                layerIndex = layerIndex,
+                                                select = true
+                                            )
+                                            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                        }
+                                    } else {
+                                        engine.commitStroke(
+                                            points = newDraft.points.toList(),
+                                            tool = tool,
                                             color = engine.strokeColor,
                                             width = engine.brushSize,
                                             opacity = engine.brushOpacity,
@@ -400,22 +412,15 @@ fun CanvasStage(
                                         )
                                         haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                                     }
-                                } else {
-                                    engine.commitStroke(
-                                        points = newDraft.points.toList(),
-                                        tool = tool,
-                                        color = engine.strokeColor,
-                                        width = engine.brushSize,
-                                        opacity = engine.brushOpacity,
-                                        frameIndex = frameIndex,
-                                        layerIndex = layerIndex,
-                                        select = true
-                                    )
-                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                } catch (t: Throwable) {
+                                    onBlocked(t.message ?: "Could not draw.")
                                 }
-                            } catch (t: Throwable) {
-                                onBlocked(t.message ?: "Could not draw.")
                             }
+                        } finally {
+                            // Always drop the live preview, even when the gesture is
+                            // cancelled (tool change, sheet dismissal, disposal).
+                            draft = null
+                            draftTick++
                         }
                     }
                 }
