@@ -23,5 +23,5 @@ SOFTWARE.
 ---
 
 Bundled fonts:
-- Inter — SIL Open Font License 1.1 (app/src/main/res/font/OFL-inter.txt)
-- JetBrains Mono — SIL Open Font License 1.1 (app/src/main/res/font/OFL-jetbrainsmono.txt)
+- Inter — SIL Open Font License 1.1 (third_party/fonts/OFL-inter.txt)
+- JetBrains Mono — SIL Open Font License 1.1 (third_party/fonts/OFL-jetbrainsmono.txt)
