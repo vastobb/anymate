@@ -65,7 +65,7 @@ fun ToolRail(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .padding(top = 92.dp, bottom = 10.dp, start = 8.dp),
+            .padding(top = 14.dp, bottom = 8.dp, start = 8.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Column(
@@ -77,7 +77,7 @@ fun ToolRail(
                 .verticalScroll(scroll)
                 .padding(vertical = 6.dp, horizontal = 5.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             toolItems.forEach { item ->
                 val selected = engine.selectedTool == item.tool
@@ -89,19 +89,19 @@ fun ToolRail(
                         engine.selectTool(item.tool)
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
-                    size = 48.dp,
+                    size = 46.dp,
                     iconScale = 0.44f,
                     activeTint = if (item.tool == ToolType.HAND) Cyan else Violet
                 )
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Box(
                 Modifier
                     .width(22.dp)
                     .height(1.dp)
                     .background(Hairline)
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Box(
                 Modifier
                     .size(8.dp)
