@@ -111,7 +111,7 @@ class ToolRegistry(
 
     private fun summary(name: String, args: JsonObject): String = when (name) {
         "anymate_draw_stroke" -> {
-            val pts = args["points"]?.jsonArray?.size ?: 0
+            val pts = (args["points"] as? JsonArray)?.size ?: 0
             val tool = args["tool"]?.stringOrNull() ?: "pen"
             "drawing $tool · $pts points · frame ${args["frame"]?.intOrNull() ?: "current"}"
         }
@@ -121,7 +121,7 @@ class ToolRegistry(
         "anymate_add_frame" -> "new frame"
         "anymate_duplicate_frame" -> "duplicate frame"
         "anymate_generate" -> args["prompt"]?.stringOrNull()?.take(70) ?: "local director"
-        "anymate_batch" -> "${args["calls"]?.jsonArray?.size ?: 0} batched calls"
+        "anymate_batch" -> "${(args["calls"] as? JsonArray)?.size ?: 0} batched calls"
         "anymate_snapshot" -> "preview snapshot"
         "anymate_export_gif" -> "exporting GIF"
         else -> args.toString().take(110)
@@ -741,7 +741,7 @@ class ToolRegistry(
                 required = listOf("calls")
             )
         ) { args ->
-            val calls = args["calls"]?.jsonArray ?: throw IllegalArgumentException("calls[] is required")
+            val calls = args["calls"] as? JsonArray ?: throw IllegalArgumentException("calls[] is required")
             require(calls.size in 1..400) { "Batch must contain 1-400 calls." }
             val pace = (args.int("pace_ms") ?: 0).coerceIn(0, 500)
             engine.beginUndoGroup("Agent batch (${calls.size} calls)")
@@ -757,7 +757,7 @@ class ToolRegistry(
                         errors.add("#$i nested batch rejected")
                         continue
                     }
-                    val callArgs = call["args"]?.jsonObject ?: JsonObject(emptyMap())
+                    val callArgs = call["args"] as? JsonObject ?: JsonObject(emptyMap())
                     val result = executeInternal(name, callArgs)
                     if (pace > 0 && i < calls.lastIndex) kotlinx.coroutines.delay(pace.toLong())
                     if (result.isError) {
@@ -879,7 +879,7 @@ class ToolRegistry(
     }
 
     internal fun JsonObject.points(): List<Vec2> {
-        val array = this["points"]?.jsonArray ?: throw IllegalArgumentException("points[] is required")
+        val array = this["points"] as? JsonArray ?: throw IllegalArgumentException("points[] is required")
         if (array.size > 20_000) throw IllegalArgumentException("Too many points (max 20000)")
         return array.map { element ->
             if (element is JsonArray) {
