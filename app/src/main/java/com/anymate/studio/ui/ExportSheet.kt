@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Share
@@ -111,6 +112,18 @@ fun ExportSheet(vm: StudioViewModel, onDismiss: () -> Unit) {
             buttonLabel = "Export frames",
             enabled = !running,
             onClick = { vm.startExport(ExportKind.ZIP) },
+            primary = false
+        )
+
+        Spacer(Modifier.height(10.dp))
+        ExportCard(
+            icon = Icons.Rounded.FolderOpen,
+            title = "AnyMate project",
+            description = "The complete editable document — frames, layers, strokes, fills and type — in one .anymate file. Share it, back it up or move it to another phone.",
+            accent = Violet,
+            buttonLabel = "Share project file",
+            enabled = !running,
+            onClick = { vm.shareProject() },
             primary = false
         )
 

@@ -13,6 +13,7 @@ import com.anymate.studio.agent.AiAgent
 import com.anymate.studio.engine.AnimationEngine
 import com.anymate.studio.engine.Director
 import com.anymate.studio.engine.ExportManager
+import com.anymate.studio.engine.ProjectStore
 import com.anymate.studio.mcp.McpServer
 import com.anymate.studio.mcp.ToolRegistry
 import com.anymate.studio.model.CanvasPreset
@@ -54,6 +55,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     val exporter = ExportManager(app)
     val registry = ToolRegistry(engine, exporter)
     val server = McpServer(app, engine, registry, exporter, prefs)
+    val projectStore = ProjectStore(app, engine)
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var chatId = 0L
@@ -97,6 +99,11 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 notice = Notice(System.nanoTime(), server.lastError ?: "MCP server could not start")
             }
         }
+        val restored = projectStore.readAutosave()
+        if (restored) {
+            notice = Notice(System.nanoTime(), "Restored \"${engine.projectName}\" from your last session")
+        }
+        startAutosaveLoop()
         chat.add(
             ChatMessage(
                 id = ++chatId,
@@ -104,6 +111,20 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 text = "I'm your AnyMate director. I can use every brush, layer and frame in this studio — and you'll watch each move happen live.\n\nTry “bouncing ball”, “walk cycle at 60 fps”, or “kinetic type HELLO”."
             )
         )
+    }
+
+    /** Debounced autosave: the document is written to internal storage. */
+    private fun startAutosaveLoop() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1200)
+                val revision = engine.revision
+                delay(400)
+                if (engine.revision == revision) {
+                    withContext(Dispatchers.IO) { projectStore.saveAutosave() }
+                }
+            }
+        }
     }
 
     // ---- Chat / agent -----------------------------------------------------
@@ -332,6 +353,28 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             exporter.share(file, exportState?.mime ?: "application/octet-stream")
         } catch (t: Throwable) {
             notice = Notice(System.nanoTime(), "Could not share: ${t.message}")
+        }
+    }
+
+    /** Writes the editable document to a shareable .anymate file. */
+    fun shareProject() {
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.IO) {
+                val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                    .format(java.util.Date())
+                val target = java.io.File(exporter.exportsDir, "anymate_project_$stamp.anymate")
+                if (projectStore.writeTo(target)) target else null
+            }
+            if (file == null) {
+                notify("Could not write the project file")
+            } else {
+                try {
+                    exporter.share(file, "application/octet-stream")
+                    notify("Project file ready")
+                } catch (t: Throwable) {
+                    notify("Could not share: ${t.message}")
+                }
+            }
         }
     }
 

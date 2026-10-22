@@ -868,6 +868,55 @@ class AnimationEngine {
 
     fun nextElementId(): Long = nextId()
 
+    /** Rebuilds the whole document from a stored project file. */
+    fun restoreProject(
+        file: com.anymate.studio.model.ProjectFile,
+        decodeElements: (com.anymate.studio.model.ElementFile) -> Element?
+    ) {
+        frames.clear()
+        layers.clear()
+        val layerFiles = file.layers.ifEmpty {
+            DefaultLayers.map { com.anymate.studio.model.LayerFile(name = it) }
+        }
+        layerFiles.forEach { layerFile ->
+            layers.add(
+                LayerMeta(nextId(), layerFile.name).apply {
+                    visible = layerFile.visible
+                    locked = layerFile.locked
+                    opacity = layerFile.opacity
+                }
+            )
+        }
+        projectName = file.name.ifBlank { "Untitled" }
+        canvasWidth = file.width.coerceIn(240, 2048)
+        canvasHeight = file.height.coerceIn(240, 2048)
+        fps = file.fps.coerceIn(1, 60)
+        background = file.background
+        file.frames.forEach { frameFile ->
+            val frame = Frame(nextId(), layers.size)
+            frameFile.layers.forEachIndexed { layerIndex, elements ->
+                val layer = frame.layers.getOrNull(layerIndex) ?: return@forEachIndexed
+                elements.forEach { elementFile ->
+                    decodeElements(elementFile)?.let { layer.elements.add(it) }
+                }
+            }
+            frames.add(frame)
+        }
+        if (frames.isEmpty()) frames.add(Frame(nextId(), layers.size))
+        currentIndex = file.currentFrame.coerceIn(0, frames.lastIndex)
+        currentLayer = 0
+        isPlaying = false
+        undoStack.clear()
+        redoStack.clear()
+        groupDepth = 0
+        groupOps = null
+        refreshHistory()
+        Rasterizer.clearCaches()
+        revision++
+        thumbnailEpoch++
+        historyEpoch++
+    }
+
     fun layerFramesSnapshot(): List<FrameLayer> = currentFrame().layers.toList()
 
     fun largestFrameThumbnailSize(): Int = max(canvasWidth, canvasHeight)

@@ -324,6 +324,7 @@ fun SettingsSheet(
             InfoRow(Icons.Rounded.Memory, "Resolution", "${engine.canvasWidth} × ${engine.canvasHeight}")
             InfoRow(Icons.Rounded.Speed, "Frame rate", "${engine.fps} fps")
             InfoRow(Icons.Rounded.AddCircle, "Frames", "${engine.frames.size}")
+            InfoRow(Icons.Rounded.Memory, "Autosave", "On · this device")
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GhostButton(
