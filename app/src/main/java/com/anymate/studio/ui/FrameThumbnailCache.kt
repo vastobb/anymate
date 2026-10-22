@@ -48,7 +48,10 @@ object FrameThumbnailCache {
             }
             ThumbSnapshot(
                 frameCopy, layersCopy, engine.canvasWidth, engine.canvasHeight,
-                engine.background, size
+                engine.background, size,
+                com.anymate.studio.engine.GridSpec(
+                    engine.gridEnabled, engine.gridSpacing, engine.gridColor
+                )
             )
         }
         return withContext(Dispatchers.Default) {
@@ -63,7 +66,8 @@ object FrameThumbnailCache {
                 snapshot.background,
                 max(32, outW),
                 max(32, outH),
-                includeBackground = true
+                includeBackground = true,
+                grid = snapshot.grid
             )
             cache.put(key, bitmap)
             bitmap.asImageBitmap()
@@ -76,7 +80,8 @@ object FrameThumbnailCache {
         val width: Int,
         val height: Int,
         val background: Long,
-        val size: Int
+        val size: Int,
+        val grid: com.anymate.studio.engine.GridSpec
     )
 
     fun clear() {

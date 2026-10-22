@@ -300,6 +300,34 @@ class AnimationEngine {
         panY = 0f
     }
 
+    // ---- Grid / guides ----------------------------------------------------
+    var gridEnabled by mutableStateOf(false)
+        private set
+    var gridSpacing by mutableFloatStateOf(80f)
+        private set
+    var gridColor by mutableLongStateOf(0x22000000)
+        private set
+
+    fun updateGrid(enabled: Boolean, spacing: Float = gridSpacing, color: Long = gridColor) {
+        gridEnabled = enabled
+        gridSpacing = spacing.coerceIn(8f, 600f)
+        gridColor = color
+        revision++
+        thumbnailEpoch++
+    }
+
+    // ---- Playback range ---------------------------------------------------
+    var rangeStart by mutableIntStateOf(0)
+        private set
+    var rangeEnd by mutableIntStateOf(0)
+        private set
+
+    fun updatePlaybackRange(start: Int, end: Int) {
+        rangeStart = start.coerceIn(0, frames.lastIndex.coerceAtLeast(0))
+        rangeEnd = end.coerceIn(rangeStart, frames.lastIndex.coerceAtLeast(0))
+        revision++
+    }
+
     // ---- Frames -----------------------------------------------------------
     fun addFrame(
         index: Int? = null,
@@ -362,6 +390,111 @@ class AnimationEngine {
         currentIndex = index
         isPlaying = false
         revision++
+    }
+
+    /** Moves a frame to a new position on the timeline. */
+    fun reorderFrame(from: Int, to: Int): Int {
+        val frame = frames.getOrNull(from) ?: throw IllegalArgumentException("Frame $from does not exist.")
+        val target = to.coerceIn(0, frames.lastIndex)
+        if (from == target) return currentIndex
+        val current = currentIndex
+        frames.removeAt(from)
+        frames.add(target, frame)
+        currentIndex = when {
+            current == from -> target
+            from < current && target >= current -> current - 1
+            from > current && target <= current -> current + 1
+            else -> current
+        }
+        revision++
+        thumbnailEpoch++
+        return currentIndex
+    }
+
+    /** Shifts every drawing on a frame — the classic "move this pose" move. */
+    fun offsetFrame(index: Int, dx: Float, dy: Float): Int {
+        val frame = frames.getOrNull(index) ?: throw IllegalArgumentException("Frame $index does not exist.")
+        var moved = 0
+        frame.layers.forEachIndexed { layerIndex, layer ->
+            val before = layer.snapshot()
+            if (before.isEmpty()) return@forEachIndexed
+            layer.elements.replaceAll { element ->
+                when (element) {
+                    is StrokeElement -> element.copy(
+                        points = element.points.map { Vec2(it.x + dx, it.y + dy, it.pressure) }
+                    )
+                    is ShapeElement -> element.copy(
+                        x1 = element.x1 + dx, y1 = element.y1 + dy,
+                        x2 = element.x2 + dx, y2 = element.y2 + dy
+                    )
+                    is PolygonElement -> element.copy(
+                        points = element.points.map { Vec2(it.x + dx, it.y + dy, it.pressure) }
+                    )
+                    is TextElement -> element.copy(x = element.x + dx, y = element.y + dy)
+                    is RasterElement -> element.copy(x = element.x + dx.toInt(), y = element.y + dy.toInt())
+                }
+            }
+            record(UndoOp.Elements(frame.id, layerIndex, before, layer.snapshot()))
+            moved += layer.elements.size
+        }
+        frame.bump()
+        revision++
+        thumbnailEpoch++
+        return moved
+    }
+
+    /** Flattens every layer of a frame into a single layer. */
+    fun mergeLayers(frameIndex: Int, targetLayer: Int = 0): Int {
+        val frame = frames.getOrNull(frameIndex) ?: throw IllegalArgumentException("Frame $frameIndex does not exist.")
+        if (frame.layers.size < 2) return 0
+        val target = frame.layers.getOrNull(targetLayer) ?: throw IllegalArgumentException("Layer $targetLayer does not exist.")
+        val merged = frame.layers.flatMap { it.elements }
+        frame.layers.forEachIndexed { index, layer ->
+            if (index != targetLayer) layer.elements.clear()
+        }
+        target.elements.addAll(merged)
+        frame.bump()
+        revision++
+        thumbnailEpoch++
+        return merged.size
+    }
+
+    /** Replaces the contents of one layer with a new element list. */
+    fun replaceLayerElements(frameIndex: Int, layerIndex: Int, elements: List<Element>) {
+        val frame = frames.getOrNull(frameIndex) ?: throw IllegalArgumentException("Frame $frameIndex does not exist.")
+        val layer = frame.layers.getOrNull(layerIndex) ?: throw IllegalArgumentException("Layer $layerIndex does not exist.")
+        val before = layer.snapshot()
+        layer.elements.clear()
+        layer.elements.addAll(elements)
+        record(UndoOp.Elements(frame.id, layerIndex, before, layer.snapshot()))
+        frame.bump()
+        revision++
+        thumbnailEpoch++
+    }
+
+    /** Changes the canvas size without touching the artwork. */
+    fun updateCanvasSize(width: Int, height: Int) {
+        canvasWidth = width.coerceIn(240, 4096)
+        canvasHeight = height.coerceIn(240, 4096)
+        revision++
+        thumbnailEpoch++
+    }
+
+    /** Human readable description of what is on a frame. */
+    fun describeFrame(index: Int): List<String> {
+        val frame = frames.getOrNull(index) ?: throw IllegalArgumentException("Frame $index does not exist.")
+        return frame.layers.flatMapIndexed { layerIndex, layer ->
+            layer.elements.map { element ->
+                val label = when (element) {
+                    is StrokeElement -> "stroke(${element.points.size} pts, ${element.tool.name.lowercase()})"
+                    is ShapeElement -> "shape(${element.kind.name.lowercase()})"
+                    is PolygonElement -> "polygon(${element.points.size} pts)"
+                    is TextElement -> "text(\"${element.text.take(24)}\")"
+                    is RasterElement -> "raster(${element.bitmap.width}x${element.bitmap.height})"
+                }
+                "L$layerIndex id=${element.id} $label"
+            }
+        }
     }
 
     fun selectLayer(index: Int) {

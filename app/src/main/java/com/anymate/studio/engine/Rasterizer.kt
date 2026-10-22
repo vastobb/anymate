@@ -36,6 +36,13 @@ import kotlin.math.sqrt
  * editor, thumbnails, GIF export and MCP snapshots, so what an agent sees is
  * exactly what the artist sees.
  */
+/** Optional drawing grid rendered beneath the artwork. */
+data class GridSpec(
+    val enabled: Boolean = false,
+    val spacing: Float = 80f,
+    val color: Long = 0x22000000
+)
+
 object Rasterizer {
 
     private data class CachedStroke(val path: Path, val avgPressure: Float, val isDot: Boolean)
@@ -56,10 +63,30 @@ object Rasterizer {
         background: Long,
         frame: Frame,
         layers: List<LayerMeta>,
-        includeBackground: Boolean = true
+        includeBackground: Boolean = true,
+        grid: GridSpec? = null
     ) {
         if (includeBackground) canvas.drawColor(background.toInt())
+        drawGrid(canvas, width, height, grid)
         drawLayers(canvas, width, height, frame, layers)
+    }
+
+    fun drawGrid(canvas: Canvas, width: Int, height: Int, spec: GridSpec?) {
+        if (spec == null || !spec.enabled) return
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = spec.color.toInt()
+        paint.strokeWidth = 1f
+        val step = spec.spacing.coerceAtLeast(4f)
+        var x = 0f
+        while (x <= width) {
+            canvas.drawLine(x, 0f, x, height.toFloat(), paint)
+            x += step
+        }
+        var y = 0f
+        while (y <= height) {
+            canvas.drawLine(0f, y, width.toFloat(), y, paint)
+            y += step
+        }
     }
 
     fun drawLayers(
@@ -98,7 +125,8 @@ object Rasterizer {
         background: Long,
         outWidth: Int,
         outHeight: Int,
-        includeBackground: Boolean = true
+        includeBackground: Boolean = true,
+        grid: GridSpec? = null
     ): Bitmap {
         val safeW = outWidth.coerceAtLeast(1)
         val safeH = outHeight.coerceAtLeast(1)
@@ -111,7 +139,8 @@ object Rasterizer {
         val count = canvas.save()
         canvas.translate(dx, dy)
         canvas.scale(scale, scale)
-        drawFrame(canvas, projectWidth, projectHeight, background, frame, layers, includeBackground)
+        drawGrid(canvas, projectWidth, projectHeight, grid)
+        drawLayers(canvas, projectWidth, projectHeight, frame, layers)
         canvas.restoreToCount(count)
         return bitmap
     }

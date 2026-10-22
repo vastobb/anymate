@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anymate.studio.engine.AnimationEngine
+import com.anymate.studio.engine.GridSpec
 import com.anymate.studio.engine.Rasterizer
 import com.anymate.studio.model.ShapeElement
 import com.anymate.studio.model.ShapeKind
@@ -504,6 +505,14 @@ fun CanvasStage(
                 translate(transform.left, transform.top) {
                     scale(transform.scale, transform.scale, pivot = Offset.Zero) {
                         drawRect(engine.background.toComposeColor())
+                        drawIntoCanvas { canvas ->
+                            Rasterizer.drawGrid(
+                                canvas.nativeCanvas,
+                                engine.canvasWidth,
+                                engine.canvasHeight,
+                                GridSpec(engine.gridEnabled, engine.gridSpacing, engine.gridColor)
+                            )
+                        }
                         val frame = engine.currentFrame()
                         val layers = engine.layers.toList()
                         if (engine.onionSkin && !engine.isPlaying && engine.frames.size > 1) {

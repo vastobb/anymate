@@ -31,7 +31,8 @@ data class ExportSnapshot(
     val background: Long,
     val frames: List<Frame>,
     val layers: List<LayerMeta>,
-    val currentIndex: Int
+    val currentIndex: Int,
+    val grid: GridSpec = GridSpec()
 )
 
 class ExportManager(private val context: Context) {
@@ -64,7 +65,8 @@ class ExportManager(private val context: Context) {
             background = engine.background,
             frames = frameCopies,
             layers = layerCopies,
-            currentIndex = engine.currentIndex
+            currentIndex = engine.currentIndex,
+            grid = GridSpec(engine.gridEnabled, engine.gridSpacing, engine.gridColor)
         )
     }
 
@@ -94,7 +96,8 @@ class ExportManager(private val context: Context) {
                         snapshot.width, snapshot.height, snapshot.background,
                         (snapshot.width * sampleScale).roundToInt().coerceAtLeast(2),
                         (snapshot.height * sampleScale).roundToInt().coerceAtLeast(2),
-                        includeBackground = true
+                        includeBackground = true,
+                        grid = snapshot.grid
                     )
                 )
             }
@@ -111,7 +114,7 @@ class ExportManager(private val context: Context) {
                     val bitmap = Rasterizer.renderFrame(
                         frame, snapshot.layers,
                         snapshot.width, snapshot.height, snapshot.background,
-                        outW, outH, includeBackground = true
+                        outW, outH, includeBackground = true, grid = snapshot.grid
                     )
                     encoder.writeFrame(bitmap)
                     bitmap.recycle()
@@ -143,7 +146,7 @@ class ExportManager(private val context: Context) {
                     val bitmap = Rasterizer.renderFrame(
                         frame, snapshot.layers,
                         snapshot.width, snapshot.height, snapshot.background,
-                        snapshot.width, snapshot.height, includeBackground = true
+                        snapshot.width, snapshot.height, includeBackground = true, grid = snapshot.grid
                     )
                     val png = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, png)
@@ -176,13 +179,60 @@ class ExportManager(private val context: Context) {
         val bitmap = Rasterizer.renderFrame(
             frame, snapshot.layers,
             snapshot.width, snapshot.height, snapshot.background,
-            snapshot.width, snapshot.height, includeBackground = true
+            snapshot.width, snapshot.height, includeBackground = true, grid = snapshot.grid
         )
         val file = File(exportsDir, "anymate_frame_${timestamp()}.png")
         FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
         onProgress(1f, "PNG ready")
         file
+    }
+
+    /**
+     * Renders every frame into one contact sheet. Agents use it to review a
+     * whole animation in a single look.
+     */
+    suspend fun renderSpriteSheet(
+        engine: AnimationEngine,
+        columns: Int = 6,
+        cellSize: Int = 180
+    ): Bitmap = withContext(Dispatchers.Default) {
+        val snapshot = withContext(Dispatchers.Main) { snapshotOnMain(engine) }
+        val frames = snapshot.frames
+        require(frames.isNotEmpty()) { "There are no frames to render." }
+        val cols = columns.coerceIn(1, 12)
+        val cell = cellSize.coerceIn(48, 640)
+        val rows = ((frames.size + cols - 1) / cols).coerceAtLeast(1)
+        val ratio = snapshot.width.toFloat() / snapshot.height
+        val cellW: Int
+        val cellH: Int
+        if (ratio >= 1f) {
+            cellW = cell
+            cellH = (cell / ratio).toInt().coerceAtLeast(24)
+        } else {
+            cellH = cell
+            cellW = (cell * ratio).toInt().coerceAtLeast(24)
+        }
+        val sheet = Bitmap.createBitmap(cellW * cols, cellH * rows, Bitmap.Config.ARGB_8888)
+        val sheetCanvas = android.graphics.Canvas(sheet)
+        sheetCanvas.drawColor(snapshot.background.toInt())
+        frames.forEachIndexed { index, frame ->
+            val column = index % cols
+            val row = index / cols
+            val tile = Rasterizer.renderFrame(
+                frame, snapshot.layers,
+                snapshot.width, snapshot.height, snapshot.background,
+                cellW, cellH, includeBackground = false, grid = snapshot.grid
+            )
+            sheetCanvas.drawBitmap(
+                tile,
+                (column * cellW).toFloat(),
+                (row * cellH).toFloat(),
+                android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+            )
+            tile.recycle()
+        }
+        sheet
     }
 
     fun share(file: File, mime: String) {

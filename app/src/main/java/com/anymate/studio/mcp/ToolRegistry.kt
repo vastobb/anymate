@@ -58,8 +58,8 @@ data class ToolDef(
  * agent's work live while it happens.
  */
 class ToolRegistry(
-    private val engine: AnimationEngine,
-    private val exporter: ExportManager
+    internal val engine: AnimationEngine,
+    internal val exporter: ExportManager
 ) {
     private val serial = Mutex()
     var serverBaseUrl: String = ""
@@ -69,6 +69,7 @@ class ToolRegistry(
 
     init {
         registerCoreTools()
+        registerAnimationTools()
     }
 
     val toolSchemas: JsonArray
@@ -125,7 +126,7 @@ class ToolRegistry(
     }
 
     // ---- Tool registration ------------------------------------------------
-    private fun tool(
+    internal fun tool(
         name: String,
         description: String,
         schema: JsonObject,
@@ -773,19 +774,18 @@ class ToolRegistry(
         }
     }
 
-    private fun exportMessage(file: java.io.File, label: String): String {
-        val url = if (serverBaseUrl.isBlank()) "" else "\nDownload: $serverBaseUrl/exports/${file.name}"
+    private fun exportMessage(file: java.io.File, label: String): String {        val url = if (serverBaseUrl.isBlank()) "" else "\nDownload: $serverBaseUrl/exports/${file.name}"
         val token = if (accessToken.isBlank()) "" else "\nAuth: Bearer token (see AnyMate MCP settings)"
         return "$label exported: ${file.absolutePath}\n${file.length() / 1024} KB$url$token"
     }
 
     // ---- JSON helpers -----------------------------------------------------
-    private fun obj() = buildJsonObject {
+    internal fun obj() = buildJsonObject {
         put("type", "object")
         put("properties", buildJsonObject {})
     }
 
-    private fun schema(
+    internal fun schema(
         vararg props: Pair<String, JsonObject>,
         required: List<String> = emptyList()
     ): JsonObject = buildJsonObject {
@@ -797,32 +797,32 @@ class ToolRegistry(
         put("additionalProperties", false)
     }
 
-    private fun str(desc: String) = buildJsonObject {
+    internal fun str(desc: String) = buildJsonObject {
         put("type", "string"); put("description", desc)
     }
 
-    private fun int(desc: String, min: Double? = null, max: Double? = null) = buildJsonObject {
+    internal fun int(desc: String, min: Double? = null, max: Double? = null) = buildJsonObject {
         put("type", "integer"); put("description", desc)
         min?.let { put("minimum", it) }
         max?.let { put("maximum", it) }
     }
 
-    private fun number(desc: String, min: Double? = null, max: Double? = null) = buildJsonObject {
+    internal fun number(desc: String, min: Double? = null, max: Double? = null) = buildJsonObject {
         put("type", "number"); put("description", desc)
         min?.let { put("minimum", it) }
         max?.let { put("maximum", it) }
     }
 
-    private fun bool(desc: String) = buildJsonObject {
+    internal fun bool(desc: String) = buildJsonObject {
         put("type", "boolean"); put("description", desc)
     }
 
-    private fun enumStr(desc: String, values: List<String>) = buildJsonObject {
+    internal fun enumStr(desc: String, values: List<String>) = buildJsonObject {
         put("type", "string"); put("description", desc)
         put("enum", JsonArray(values.map { JsonPrimitive(it) }))
     }
 
-    private fun pointsArray(desc: String) = buildJsonObject {
+    internal fun pointsArray(desc: String) = buildJsonObject {
         put("type", "array")
         put("description", desc)
         put("items", buildJsonObject {
@@ -837,32 +837,32 @@ class ToolRegistry(
         put("minItems", 1)
     }
 
-    private fun JsonObject.requireString(name: String): String =
+    internal fun JsonObject.requireString(name: String): String =
         string(name) ?: throw IllegalArgumentException("$name is required")
 
-    private fun JsonObject.requireInt(name: String): Int =
+    internal fun JsonObject.requireInt(name: String): Int =
         int(name) ?: throw IllegalArgumentException("$name is required")
 
-    private fun JsonObject.requireFloat(name: String): Float =
+    internal fun JsonObject.requireFloat(name: String): Float =
         float(name) ?: throw IllegalArgumentException("$name is required")
 
-    private fun JsonObject.requireColor(name: String): Long =
+    internal fun JsonObject.requireColor(name: String): Long =
         color(name) ?: throw IllegalArgumentException("$name is required as a hex colour")
 
-    private fun JsonObject.string(name: String): String? =
+    internal fun JsonObject.string(name: String): String? =
         this[name]?.takeIf { it !is JsonNull }?.stringOrNull()
 
-    private fun JsonObject.int(name: String): Int? =
+    internal fun JsonObject.int(name: String): Int? =
         this[name]?.takeIf { it !is JsonNull }?.jsonPrimitive?.intOrNull
 
-    private fun JsonObject.float(name: String): Float? =
+    internal fun JsonObject.float(name: String): Float? =
         this[name]?.takeIf { it !is JsonNull }?.jsonPrimitive?.floatOrNull
 
-    private fun JsonObject.bool(name: String): Boolean? =
+    internal fun JsonObject.bool(name: String): Boolean? =
         this[name]?.takeIf { it !is JsonNull }?.stringOrNull()?.toBooleanStrictOrNull()
             ?: this[name]?.takeIf { it !is JsonNull }?.jsonPrimitive?.content?.toBooleanStrictOrNull()
 
-    private fun JsonObject.color(name: String): Long? {
+    internal fun JsonObject.color(name: String): Long? {
         val element = this[name] ?: return null
         val primitive = element.jsonPrimitive
         return if (primitive.isString) {
@@ -873,7 +873,7 @@ class ToolRegistry(
         }
     }
 
-    private fun JsonObject.points(): List<Vec2> {
+    internal fun JsonObject.points(): List<Vec2> {
         val array = this["points"]?.jsonArray ?: throw IllegalArgumentException("points[] is required")
         if (array.size > 20_000) throw IllegalArgumentException("Too many points (max 20000)")
         return array.map { element ->
@@ -885,13 +885,13 @@ class ToolRegistry(
         }
     }
 
-    private fun JsonElement.stringOrNull(): String? = try {
+    internal fun JsonElement.stringOrNull(): String? = try {
         if (this is JsonNull) null else jsonPrimitive.content
     } catch (_: Exception) {
         null
     }
 
-    private fun JsonElement.intOrNull(): Int? = try {
+    internal fun JsonElement.intOrNull(): Int? = try {
         if (this is JsonNull) null else jsonPrimitive.intOrNull
     } catch (_: Exception) {
         null
