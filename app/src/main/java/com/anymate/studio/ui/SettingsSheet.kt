@@ -231,21 +231,21 @@ fun SettingsSheet(
                 SettingField(
                     label = "Endpoint",
                     value = vm.agentEndpoint,
-                    onValueChange = vm::setAgentEndpoint,
+                    onValueChange = vm::updateAgentEndpoint,
                     placeholder = "https://api.openai.com/v1"
                 )
                 Spacer(Modifier.height(10.dp))
                 SettingField(
                     label = "Model",
                     value = vm.agentModel,
-                    onValueChange = vm::setAgentModel,
+                    onValueChange = vm::updateAgentModel,
                     placeholder = "gpt-4o-mini"
                 )
                 Spacer(Modifier.height(10.dp))
                 SettingField(
                     label = "API key",
                     value = vm.agentKey,
-                    onValueChange = vm::setAgentKey,
+                    onValueChange = vm::updateAgentKey,
                     placeholder = "sk-… (stored on this device)",
                     password = true
                 )
