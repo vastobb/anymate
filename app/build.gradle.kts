@@ -13,8 +13,8 @@ android {
         applicationId = "com.anymate.studio"
         minSdk = 26
         targetSdk = 35
-        versionCode = 123
-        versionName = "1.2.3"
+        versionCode = 124
+        versionName = "1.2.4"
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -33,12 +33,31 @@ android {
         freeCompilerArgs += listOf("-opt-in=kotlin.RequiresOptIn")
     }
 
+    // A committed key keeps release signatures stable across CI runs, so a new
+    // build installs over the previous APK instead of failing with
+    // "App not installed". Debug builds still use the debug key.
+    val releaseKey = rootProject.file("signing/anymate-release.p12")
+    signingConfigs {
+        if (releaseKey.exists()) {
+            create("release") {
+                storeFile = releaseKey
+                storeType = "PKCS12"
+                storePassword = "anymate-release-2026"
+                keyAlias = "anymate"
+                keyPassword = "anymate-release-2026"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Sideloadable CI build. Replace with a private keystore for store publishing.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseKey.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
