@@ -70,6 +70,8 @@ class ToolRegistry(
     init {
         registerCoreTools()
         registerAnimationTools()
+        registerHumanTools()
+        registerFrameTools()
     }
 
     val toolSchemas: JsonArray
@@ -877,11 +879,19 @@ class ToolRegistry(
         val array = this["points"]?.jsonArray ?: throw IllegalArgumentException("points[] is required")
         if (array.size > 20_000) throw IllegalArgumentException("Too many points (max 20000)")
         return array.map { element ->
-            val objectValue = element.jsonObject
-            val x = objectValue.requireFloat("x")
-            val y = objectValue.requireFloat("y")
-            val pressure = objectValue.float("pressure") ?: 1f
-            Vec2(x, y, pressure.coerceIn(0f, 1f))
+            if (element is JsonArray) {
+                // Compact [x, y] (or [x, y, pressure]) pairs are accepted too.
+                val x = element.getOrNull(0)?.jsonPrimitive?.floatOrNull ?: 0f
+                val y = element.getOrNull(1)?.jsonPrimitive?.floatOrNull ?: 0f
+                val pressure = element.getOrNull(2)?.jsonPrimitive?.floatOrNull ?: 1f
+                Vec2(x, y, pressure.coerceIn(0f, 1f))
+            } else {
+                val objectValue = element.jsonObject
+                val x = objectValue.requireFloat("x")
+                val y = objectValue.requireFloat("y")
+                val pressure = objectValue.float("pressure") ?: 1f
+                Vec2(x, y, pressure.coerceIn(0f, 1f))
+            }
         }
     }
 

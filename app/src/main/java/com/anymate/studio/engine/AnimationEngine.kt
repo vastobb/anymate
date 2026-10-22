@@ -992,6 +992,288 @@ class AnimationEngine {
         agentEvents.clear()
     }
 
+    // ---- Raster, transforms and retiming ---------------------------------
+
+    /** Places a decoded bitmap on a frame as a single immutable element. */
+    fun addRaster(
+        bitmap: Bitmap,
+        x: Float = 0f,
+        y: Float = 0f,
+        frameIndex: Int = -1,
+        layerIndex: Int = -1
+    ): Boolean {
+        val raster = RasterElement(
+            id = nextId(),
+            bitmap = bitmap,
+            x = Math.round(x),
+            y = Math.round(y)
+        )
+        return addElement(raster, frameIndex, layerIndex, select = true)
+    }
+
+    /**
+     * Mirrors, rotates and scales every element of a frame around the canvas
+     * centre. Used by the "remake this video" flow to reframe a take.
+     */
+    fun transformFrame(
+        index: Int = -1,
+        axis: String = "horizontal",
+        scale: Float = 1f,
+        dx: Float = 0f,
+        dy: Float = 0f
+    ): Int {
+        val fi = if (index < 0) currentIndex else index
+        val frame = ensureFrame(fi)
+        val key = axis.lowercase()
+        val mirrorX = key == "horizontal" || key == "mirror-x" || key == "flip-x" || key == "h"
+        val mirrorY = key == "vertical" || key == "mirror-y" || key == "flip-y" || key == "v"
+        val rotate = when (key) {
+            "rotate180", "rotate-180", "180" -> Math.PI.toFloat()
+            "rotate90cw", "rotate90", "90cw" -> (Math.PI / 2.0).toFloat()
+            "rotate90ccw", "90ccw", "rotate-90" -> (-Math.PI / 2.0).toFloat()
+            else -> 0f
+        }
+        val cx = canvasWidth / 2f
+        val cy = canvasHeight / 2f
+        val cosR = kotlin.math.cos(rotate)
+        val sinR = kotlin.math.sin(rotate)
+        fun mapX(x: Float, y: Float): Float {
+            var px = if (mirrorX) canvasWidth - x else x
+            var py = if (mirrorY) canvasHeight - y else y
+            if (rotate != 0f) {
+                val ox = px - cx
+                val oy = py - cy
+                px = cx + ox * cosR - oy * sinR
+                py = cy + ox * sinR + oy * cosR
+            }
+            return cx + (px - cx) * scale + dx
+        }
+        fun mapY(x: Float, y: Float): Float {
+            var px = if (mirrorX) canvasWidth - x else x
+            var py = if (mirrorY) canvasHeight - y else y
+            if (rotate != 0f) {
+                val ox = px - cx
+                val oy = py - cy
+                px = cx + ox * cosR - oy * sinR
+                py = cy + ox * sinR + oy * cosR
+            }
+            return cy + (py - cy) * scale + dy
+        }
+        fun transformed(element: Element): Element = when (element) {
+            is StrokeElement -> element.copy(
+                points = element.points.map { Vec2(mapX(it.x, it.y), mapY(it.x, it.y), it.pressure) },
+                width = (element.width * scale).coerceAtLeast(0.4f)
+            )
+            is ShapeElement -> element.copy(
+                x1 = mapX(element.x1, element.y1), y1 = mapY(element.x1, element.y1),
+                x2 = mapX(element.x2, element.y2), y2 = mapY(element.x2, element.y2),
+                width = (element.width * scale).coerceAtLeast(0.4f)
+            )
+            is PolygonElement -> element.copy(
+                points = element.points.map { Vec2(mapX(it.x, it.y), mapY(it.x, it.y), it.pressure) },
+                width = (element.width * scale).coerceAtLeast(0.4f)
+            )
+            is TextElement -> element.copy(
+                x = mapX(element.x, element.y),
+                y = mapY(element.x, element.y),
+                size = (element.size * scale).coerceAtLeast(4f)
+            )
+            is RasterElement -> {
+                val w = element.bitmap.width
+                val h = element.bitmap.height
+                val ncx = mapX(element.x + w / 2f, element.y + h / 2f)
+                val ncy = mapY(element.x + w / 2f, element.y + h / 2f)
+                val matrix = android.graphics.Matrix()
+                matrix.postScale(if (mirrorX) -scale else scale, if (mirrorY) -scale else scale, w / 2f, h / 2f)
+                if (rotate != 0f) matrix.postRotate(Math.toDegrees(rotate.toDouble()).toFloat(), w / 2f, h / 2f)
+                val bitmap = Bitmap.createBitmap(element.bitmap, 0, 0, w, h, matrix, true)
+                element.copy(bitmap = bitmap, x = (ncx - bitmap.width / 2f).toInt(), y = (ncy - bitmap.height / 2f).toInt())
+            }
+        }
+        frame.layers.forEachIndexed { layerIndex, layer ->
+            val before = layer.snapshot()
+            if (before.isEmpty()) return@forEachIndexed
+            layer.elements.replaceAll { transformed(it) }
+            record(UndoOp.Elements(frame.id, layerIndex, before, layer.snapshot()))
+        }
+        frame.bump()
+        revision++
+        thumbnailEpoch++
+        return frame.layers.sumOf { it.elements.size }
+    }
+
+    /** Repaints every vector element of a frame in one colour. */
+    fun recolorFrame(index: Int = -1, color: Long, layerIndex: Int = -1): Int {
+        val fi = if (index < 0) currentIndex else index
+        val frame = ensureFrame(fi)
+        fun tint(value: Long): Long {
+            val alpha = (value ushr 24) and 0xFF
+            return (alpha shl 24) or (color and 0xFFFFFF)
+        }
+        var changed = 0
+        frame.layers.forEachIndexed { li, layer ->
+            if (layerIndex >= 0 && li != layerIndex) return@forEachIndexed
+            val before = layer.snapshot()
+            if (before.isEmpty()) return@forEachIndexed
+            layer.elements.replaceAll { element ->
+                when (element) {
+                    is StrokeElement -> element.copy(color = tint(element.color)).also { changed++ }
+                    is ShapeElement -> element.copy(
+                        strokeColor = tint(element.strokeColor),
+                        fillColor = element.fillColor?.let { tint(it) }
+                    ).also { changed++ }
+                    is PolygonElement -> element.copy(
+                        strokeColor = tint(element.strokeColor),
+                        fillColor = element.fillColor?.let { tint(it) }
+                    ).also { changed++ }
+                    is TextElement -> element.copy(color = tint(element.color)).also { changed++ }
+                    is RasterElement -> element
+                }
+            }
+            record(UndoOp.Elements(frame.id, li, before, layer.snapshot()))
+        }
+        frame.bump()
+        revision++
+        thumbnailEpoch++
+        return changed
+    }
+
+    /** Plays the timeline backwards. */
+    fun reverseFrames() {
+        if (frames.size < 2) return
+        val copy = frames.toList().asReversed()
+        frames.clear()
+        frames.addAll(copy)
+        currentIndex = (frames.lastIndex - currentIndex).coerceIn(0, frames.lastIndex)
+        revision++
+        thumbnailEpoch++
+        isPlaying = false
+    }
+
+    /** Repeats every frame N times, the classic "on twos" retime. */
+    fun holdFrames(count: Int): Int {
+        val repeats = count.coerceIn(1, 12)
+        if (repeats <= 1 || frames.isEmpty()) return 0
+        var inserted = 0
+        beginUndoGroup("Hold frames")
+        for (i in frames.lastIndex downTo 0) {
+            val source = frames[i]
+            repeat(repeats - 1) {
+                val copy = source.deepCopy(nextId())
+                frames.add(i + 1, copy)
+                record(UndoOp.FrameInserted(copy, i + 1))
+                inserted++
+            }
+        }
+        endUndoGroup()
+        afterStructureChange(true)
+        return inserted
+    }
+
+    /** Adds in-between frames between every pair of existing frames. */
+    fun interpolateFrames(count: Int): Int {
+        val steps = count.coerceIn(1, 12)
+        if (frames.size < 2) return 0
+        var added = 0
+        beginUndoGroup("In-between frames")
+        for (i in frames.size - 2 downTo 0) {
+            val a = frames[i]
+            val b = frames[i + 1]
+            if (a.layers.size != b.layers.size || !canTween(a, b)) continue
+            for (k in steps downTo 1) {
+                val t = k / (steps + 1f)
+                val frame = tween(a, b, t)
+                frames.add(i + 1, frame)
+                record(UndoOp.FrameInserted(frame, i + 1))
+                added++
+            }
+        }
+        endUndoGroup()
+        if (added > 0) afterStructureChange(false)
+        return added
+    }
+
+    private fun canTween(a: Frame, b: Frame): Boolean {
+        for (li in 0 until minOf(a.layers.size, b.layers.size)) {
+            val left = a.layers[li].elements
+            val right = b.layers[li].elements
+            if (left.size != right.size) return false
+            for (i in left.indices) {
+                val le = left[i]
+                val re = right[i]
+                if (le::class != re::class) return false
+                if (le is StrokeElement && re is StrokeElement && le.points.size != re.points.size) return false
+                if (le is PolygonElement && re is PolygonElement && le.points.size != re.points.size) return false
+            }
+        }
+        return true
+    }
+
+    private fun tween(a: Frame, b: Frame, t: Float): Frame {
+        val out = Frame(nextId(), 0)
+        for (li in 0 until minOf(a.layers.size, b.layers.size)) {
+            val layer = FrameLayer()
+            val left = a.layers[li].elements
+            val right = b.layers[li].elements
+            for (i in left.indices) {
+                val le = left[i]
+                val re = right.getOrNull(i) ?: continue
+                val element: Element = when {
+                    le is StrokeElement && re is StrokeElement -> le.copy(
+                        id = nextId(),
+                        points = le.points.mapIndexed { k, point ->
+                            val other = re.points[k]
+                            Vec2(
+                                point.x + (other.x - point.x) * t,
+                                point.y + (other.y - point.y) * t,
+                                point.pressure + (other.pressure - point.pressure) * t
+                            )
+                        },
+                        width = le.width + (re.width - le.width) * t,
+                        opacity = le.opacity + (re.opacity - le.opacity) * t
+                    )
+                    le is ShapeElement && re is ShapeElement -> le.copy(
+                        id = nextId(),
+                        x1 = le.x1 + (re.x1 - le.x1) * t,
+                        y1 = le.y1 + (re.y1 - le.y1) * t,
+                        x2 = le.x2 + (re.x2 - le.x2) * t,
+                        y2 = le.y2 + (re.y2 - le.y2) * t,
+                        opacity = le.opacity + (re.opacity - le.opacity) * t
+                    )
+                    le is PolygonElement && re is PolygonElement -> le.copy(
+                        id = nextId(),
+                        points = le.points.mapIndexed { k, point ->
+                            val other = re.points[k]
+                            Vec2(
+                                point.x + (other.x - point.x) * t,
+                                point.y + (other.y - point.y) * t,
+                                point.pressure + (other.pressure - point.pressure) * t
+                            )
+                        },
+                        opacity = le.opacity + (re.opacity - le.opacity) * t
+                    )
+                    le is TextElement && re is TextElement -> le.copy(
+                        id = nextId(),
+                        x = le.x + (re.x - le.x) * t,
+                        y = le.y + (re.y - le.y) * t,
+                        opacity = le.opacity + (re.opacity - le.opacity) * t
+                    )
+                    le is RasterElement && re is RasterElement -> le.copy(
+                        id = nextId(),
+                        x = (le.x + (re.x - le.x) * t).toInt(),
+                        y = (le.y + (re.y - le.y) * t).toInt(),
+                        opacity = le.opacity + (re.opacity - le.opacity) * t
+                    )
+                    else -> le
+                }
+                layer.elements.add(element)
+            }
+            out.layers.add(layer)
+        }
+        out.bump()
+        return out
+    }
+
     // ---- Convenience for agents ------------------------------------------
     fun ensureFrame(index: Int): Frame =
         frames.getOrNull(index) ?: throw IllegalArgumentException("Frame $index does not exist. ${frames.size} frames available.")
