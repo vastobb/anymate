@@ -16,8 +16,9 @@ internal fun ToolRegistry.registerFrameTools() {
             "Use it to bring a photo, a video frame or an exported drawing onto the canvas.",
         schema(
             "png_base64" to str("PNG bytes encoded as base64"),
-            "x" to number("Left position px"),
-            "y" to number("Top position px"),
+            "x" to number("Left position px; omit to centre"),
+            "y" to number("Top position px; omit to centre"),
+            "fit" to bool("Scale down so the whole image fits the canvas"),
             "frame" to int("Frame index; default current", 0.0, 2000.0),
             "layer" to int("Layer index; default current", 0.0, 100.0),
             required = listOf("png_base64")
@@ -29,12 +30,30 @@ internal fun ToolRegistry.registerFrameTools() {
         } catch (t: Throwable) {
             throw IllegalArgumentException("png_base64 is not valid base64: ${t.message}")
         }
-        val bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.size)
+        var bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.size)
             ?: throw IllegalArgumentException("That data is not a readable image.")
-        val ok = engine.addRaster(
+        if (args.bool("fit") == true) {
+            val ratio = minOf(
+                engine.canvasWidth.toFloat() / bitmap.width,
+                engine.canvasHeight.toFloat() / bitmap.height
+            )
+            if (ratio < 1f) {
+                val scaled = Bitmap.createScaledBitmap(
+                    bitmap,
+                    Math.max(1, (bitmap.width * ratio).toInt()),
+                    Math.max(1, (bitmap.height * ratio).toInt()),
+                    true
+                )
+                if (scaled !== bitmap) bitmap.recycle()
+                bitmap = scaled
+            }
+        }
+        val x = args.float("x") ?: ((engine.canvasWidth - bitmap.width) / 2f)
+        val y = args.float("y") ?: ((engine.canvasHeight - bitmap.height) / 2f)
+        engine.addRaster(
             bitmap = bitmap,
-            x = args.float("x") ?: 0f,
-            y = args.float("y") ?: 0f,
+            x = x,
+            y = y,
             frameIndex = args.int("frame") ?: -1,
             layerIndex = args.int("layer") ?: -1
         )

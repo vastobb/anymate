@@ -24,7 +24,7 @@ around a single idea: **the artist and the agent share one document**.
   colour picker, layers, onion skin, timeline, playback at 12 / 24 / 30 / 60 fps, GIF + PNG export.
 - **Agent side** — a real **Model Context Protocol** server runs inside the app. Any MCP client
   (Claude, Cursor, VS Code, [anymate-controller](https://github.com/vastobb/anymate-controller))
-  can draw, animate, play, inspect and export through ~55 tools, and it can *see* the canvas
+  can draw, animate, play, inspect and export through ~60 tools, and it can *see* the canvas
   through PNG snapshots and sprite sheets.
 - **Together** — [anymate-controller](https://github.com/vastobb/anymate-controller) is the brain
   box: an AI agent, ffmpeg, Python, a terminal and a full animation design system, all local, all
@@ -40,7 +40,8 @@ around a single idea: **the artist and the agent share one document**.
 | **Landscape studio** | The app runs in landscape with a floating chrome layout: tool rail left, inspector right, slim timeline at the bottom — the canvas keeps the rest of the screen. Pinch-zoom, two-finger pan, one-finger draw that never fights the UI. |
 | **Three art-directed themes** | **Graphite** (cool neutral), **Warm Neutral** (sand and clay) and **Midnight Slate** (deep blue). Switching a theme restyles the whole studio, artboard included. |
 | **Compact layout** | One switch for a denser studio: smaller tools, shorter timeline, tighter sheets — more canvas. |
-| **Animation-grade MCP** | New tools: `anymate_draw_curve`, `anymate_motion_path`, `anymate_offset_frame`, `anymate_reorder_frame`, `anymate_merge_layers`, `anymate_get_frame`, `anymate_replace_layer`, `anymate_delete_element`, `anymate_set_grid`, `anymate_set_canvas`, `anymate_set_playback_range`, `anymate_get_render_info`, `anymate_render_sprite_sheet`. |
+| **Animation-grade MCP** | Motion paths, frame surgery, grids, sprite sheets — plus **human drawing** tools that build a line like a person would, in easy → detailed passes. |
+| **Live status** | The top bar shows an MCP LIVE pill, and a blank canvas offers a one-tap path to connect a controller. |
 | **anymate-controller** | A separate app: AI agent + ffmpeg + Python + terminal + animation design tools, exposed over MCP. |
 
 ## Highlights
@@ -53,7 +54,7 @@ around a single idea: **the artist and the agent share one document**.
 | Colour | Full HSV + alpha picker, curated studio palette, recents, eyedropper, hex entry, drawing grid |
 | Layout | Landscape-first floating chrome, three themes, compact density mode |
 | Layers | Add / rename / reorder / lock / hide / opacity, per-layer isolation so erasers behave correctly |
-| MCP | Streamable HTTP transport, bearer-token auth, ~55 tools, resources, prompts, live PNG snapshots, sprite sheets, export downloads |
+| MCP | Streamable HTTP transport, bearer-token auth, ~60 tools, resources, prompts, live PNG snapshots, sprite sheets, export downloads |
 | Export | Animated GIF (popularity-quantised palette), full-resolution PNG, numbered PNG sequence ZIP, share sheet |
 | Persistence | Debounced autosave to internal storage, automatic restore on launch, shareable `.anymate` project files |
 
@@ -133,6 +134,16 @@ Use the tiny bridge shipped in `mcp-bridge/`:
 
 **History & playback** — `anymate_undo`, `anymate_redo`, `anymate_play`, `anymate_pause`,
 `anymate_seek`, `anymate_set_loop`, `anymate_set_onion_skin`, `anymate_set_playback_range`
+
+**Human drawing** — `anymate_draw_human_stroke` (wobble, tapered ends, overshoot and
+lighter search passes), `anymate_draw_human_shape` (sketchy lines, arrows, boxes, ellipses),
+`anymate_draw_human_figure` (head, spine, arms and legs in idle / walk / run / wave / sit).
+Every one takes `detail: easy | medium | detailed`, so an agent can block a pose roughly and
+then refine it in later passes.
+
+**Frame surgery** — `anymate_draw_bitmap` (place a PNG frame), `anymate_transform_frame`
+(mirror / rotate / scale / shift), `anymate_recolor_frame`, `anymate_reverse_frames`,
+`anymate_hold_frames` (on twos), `anymate_interpolate_frames` (tween matching frames)
 
 **Animation** — `anymate_draw_curve` (smooth Catmull-Rom), `anymate_motion_path`
 (animate a shape along a path), `anymate_offset_frame`, `anymate_reorder_frame`,

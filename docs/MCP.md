@@ -104,6 +104,8 @@ A browser can open `http://<phone-ip>:8420/` for a small landing page, and
 | Frames | `anymate_list_frames`, `anymate_add_frame`, `anymate_duplicate_frame`, `anymate_delete_frame`, `anymate_select_frame`, `anymate_clear_frame` |
 | Layers | `anymate_add_layer`, `anymate_delete_layer`, `anymate_set_layer`, `anymate_select_layer` |
 | Drawing | `anymate_draw_stroke`, `anymate_draw_shape`, `anymate_draw_polygon`, `anymate_draw_text`, `anymate_fill`, `anymate_clear_layer` |
+| Human drawing | `anymate_draw_human_stroke`, `anymate_draw_human_shape`, `anymate_draw_human_figure` |
+| Frame surgery | `anymate_draw_bitmap`, `anymate_transform_frame`, `anymate_recolor_frame`, `anymate_reverse_frames`, `anymate_hold_frames`, `anymate_interpolate_frames` |
 | Style | `anymate_set_tool`, `anymate_set_color`, `anymate_get_palette` |
 | History & playback | `anymate_undo`, `anymate_redo`, `anymate_play`, `anymate_pause`, `anymate_seek`, `anymate_set_loop`, `anymate_set_onion_skin` |
 | Preview & export | `anymate_snapshot`, `anymate_export_gif`, `anymate_export_png`, `anymate_export_frames` |
@@ -163,6 +165,40 @@ the canvas size (default 900 × 900).
 
 `anymate_render_sprite_sheet` returns every frame as one image — the fastest way for a
 model to review a whole animation.
+
+### Drawing like a person
+
+A single perfect spline reads as machine output. These tools instead build a line the
+way a hand does — a little wobble, a run past the corner, lighter searching passes:
+
+```json
+{"name": "anymate_draw_human_figure", "arguments": {
+  "pose": "walk", "x": 260, "y": 120, "size": 540, "detail": "medium",
+  "color": "#111827", "width": 6
+}}
+```
+
+```json
+{"name": "anymate_batch", "arguments": {"calls": [
+  {"name": "anymate_draw_human_shape", "args": {"shape": "ellipse", "x1": 180, "y1": 140,
+    "x2": 520, "y2": 460, "detail": "easy", "color": "#7C3AED", "width": 5}},
+  {"name": "anymate_draw_human_stroke", "args": {"points": [[220, 300], [340, 250], [470, 330]],
+    "detail": "detailed", "color": "#111827", "width": 4}}
+]}}
+```
+
+`detail` moves from `easy` (a fast block-in) through `medium` (a confident single take)
+to `detailed` (refinement passes). The right workflow is easy first, look at
+`anymate_snapshot`, then refine — not one giant splat.
+
+### Remaking a picture or a video
+
+The Controller (or any MCP client) can decode media and stream the result onto the phone:
+
+* `anymate_draw_bitmap` places a base64 PNG on a frame — the way video frames or photos arrive.
+* `anymate_transform_frame`, `anymate_recolor_frame`, `anymate_reverse_frames`,
+  `anymate_hold_frames` and `anymate_interpolate_frames` then reframe, recolour, mirror,
+  retime and tween the imported animation.
 
 ## 5. Security notes
 

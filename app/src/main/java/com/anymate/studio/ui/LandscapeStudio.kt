@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,6 +112,7 @@ fun LandscapeStudio(
     onColorPicked: (Long) -> Unit
 ) {
     val engine = vm.engine
+    var hintDismissed by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,6 +183,19 @@ fun LandscapeStudio(
                     bottom = 90.dp
                 )
         )
+
+        val blank = engine.frames.size == 1 &&
+            engine.currentFrame().layers.all { it.elements.isEmpty() }
+        if (blank && !hintDismissed) {
+            BlankCanvasCard(
+                serverUrl = if (vm.server.running) vm.server.mcpUrl else null,
+                onDraw = { hintDismissed = true },
+                onConnect = onOpenMcp,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(start = 64.dp, end = 20.dp, bottom = 76.dp, top = 56.dp)
+            )
+        }
 
         LandscapeTimeline(
             engine = engine,
@@ -268,13 +284,34 @@ private fun LandscapeTopBar(
             size = 34.dp,
             tint = vm.themeKind.palette.primary
         )
-        StudioIconButton(
-            icon = Icons.Rounded.Hub,
-            contentDescription = "Connect an agent",
-            onClick = onOpenMcp,
-            size = 34.dp,
-            tint = if (server.running) Success else TextMuted
-        )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(11.dp))
+                .background(if (server.running) Success.copy(alpha = 0.14f) else Ink800)
+                .border(
+                    1.dp,
+                    if (server.running) Success.copy(alpha = 0.45f) else Hairline,
+                    RoundedCornerShape(11.dp)
+                )
+                .clickable(onClick = onOpenMcp)
+                .padding(horizontal = 9.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(if (server.running) Success else TextMuted)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                if (server.running) "MCP LIVE" else "MCP",
+                color = if (server.running) Success else TextMuted,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+        }
         StudioIconButton(
             icon = Icons.Rounded.Settings,
             contentDescription = "Studio settings",
@@ -714,6 +751,80 @@ private fun LandscapeFrameCard(
                 fontFamily = Mono,
                 fontSize = 7.sp
             )
+        }
+    }
+}
+
+
+@Composable
+private fun BlankCanvasCard(
+    serverUrl: String?,
+    onDraw: () -> Unit,
+    onConnect: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .widthIn(max = 430.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Ink900.copy(alpha = 0.86f))
+            .border(1.dp, Hairline, RoundedCornerShape(22.dp))
+            .padding(horizontal = 22.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BrandMark(24.dp)
+            Spacer(Modifier.width(9.dp))
+            Text(
+                "A blank stage",
+                color = TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(Modifier.height(7.dp))
+        Text(
+            "Draw with one finger, pinch to zoom. Or let AnyMate Controller direct the scene over MCP.",
+            color = TextMuted,
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+            textAlign = TextAlign.Center
+        )
+        if (serverUrl != null) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                serverUrl,
+                color = Cyan,
+                fontSize = 10.sp,
+                fontFamily = Mono
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Ink800)
+                    .border(1.dp, Hairline, RoundedCornerShape(12.dp))
+                    .clickable(onClick = onDraw)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text("Start drawing", color = TextSecondary, fontSize = 12.sp)
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(AccentGradient)
+                    .clickable(onClick = onConnect)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    "Connect an agent",
+                    color = Color(0xFF0C0718),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

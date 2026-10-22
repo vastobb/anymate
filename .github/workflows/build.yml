@@ -83,9 +83,12 @@ jobs:
 
             • Touch-first studio: pencil, ink pen, brush, eraser, flood fill, shapes, type, layers, onion skin
             • 12 / 24 / 30 / 60 fps playback, built to absorb 60+ frame writes per second
-            • A real **MCP server** inside the app — every drawing, frame and export tool is exposed to any agent
-            • An **AI Director** that paints each frame live on your canvas (offline templates, or your own model)
+            • A real **MCP server** inside the app — ~60 drawing, frame, animation and export tools
+            • **Human drawing** tools: strokes, shapes and figures with wobble, taper and overshoot,
+              from an `easy` block-in to `detailed` line art
+            • **Frame surgery**: place bitmap frames, mirror/rotate/scale, recolour, reverse, hold and tween
             • Animated GIF / PNG / PNG-sequence export, plus shareable `.anymate` project files
+            • New UI: live MCP status pill, blank-canvas quick start, cleaner landscape chrome
 
             **Install:** download the APK below and sideload it (allow "install from unknown sources").
             The CI build is signed with the CI debug key for easy testing.

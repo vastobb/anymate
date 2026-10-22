@@ -812,7 +812,7 @@ private fun EmptyCanvasHint(engine: AnimationEngine, modifier: Modifier = Modifi
         )
         Spacer(Modifier.height(3.dp))
         Text(
-            "Draw with one finger · pinch to zoom · ask the Director",
+            "Draw with one finger · pinch to zoom · or connect AnyMate Controller over MCP",
             color = TextMuted,
             fontSize = 10.sp
         )
