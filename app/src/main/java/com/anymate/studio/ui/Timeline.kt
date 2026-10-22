@@ -67,6 +67,7 @@ import com.anymate.studio.engine.AnimationEngine
 import com.anymate.studio.model.DefaultFpsChoices
 import com.anymate.studio.model.Frame
 import com.anymate.studio.ui.theme.AccentGradient
+import com.anymate.studio.ui.theme.AnyMateMetrics
 import com.anymate.studio.ui.theme.Cyan
 import com.anymate.studio.ui.theme.Danger
 import com.anymate.studio.ui.theme.Hairline
@@ -95,6 +96,7 @@ fun Timeline(
     val listState = rememberLazyListState()
     var fpsMenu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
+    val compact = AnyMateMetrics.compact
 
     LaunchedEffect(Unit) {
         var lastFollowed = -1
@@ -129,7 +131,7 @@ fun Timeline(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(if (compact) 42.dp else 48.dp)
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -279,7 +281,7 @@ fun Timeline(
 
         LazyRow(
             state = listState,
-            modifier = Modifier.fillMaxWidth().height(82.dp),
+            modifier = Modifier.fillMaxWidth().height(if (compact) 68.dp else 82.dp),
             contentPadding = PaddingValues(start = 12.dp, end = 14.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(7.dp)
         ) {

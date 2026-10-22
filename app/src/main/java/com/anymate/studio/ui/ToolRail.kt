@@ -32,9 +32,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.anymate.studio.engine.AnimationEngine
 import com.anymate.studio.model.ToolType
+import com.anymate.studio.ui.theme.AnyMateMetrics
 import com.anymate.studio.ui.theme.Hairline
 import com.anymate.studio.ui.theme.Ink850
 import com.anymate.studio.ui.theme.Violet
@@ -58,24 +60,28 @@ private val toolItems = listOf(
 fun ToolRail(
     engine: AnimationEngine,
     modifier: Modifier = Modifier,
-    onToolLongPress: (ToolType) -> Unit = {}
+    topPadding: Dp = 14.dp,
+    bottomPadding: Dp = 8.dp
 ) {
     val haptics = LocalHapticFeedback.current
     val scroll = rememberScrollState()
+    val compact = AnyMateMetrics.compact
+    val buttonSize = if (compact) 40.dp else 46.dp
+    val railWidth = if (compact) 52.dp else 58.dp
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .padding(top = 14.dp, bottom = 8.dp, start = 8.dp),
+            .padding(top = topPadding, bottom = bottomPadding, start = 8.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Column(
             modifier = Modifier
-                .width(58.dp)
+                .width(railWidth)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Ink850.copy(alpha = 0.96f))
                 .border(1.dp, Hairline, RoundedCornerShape(20.dp))
                 .verticalScroll(scroll)
-                .padding(vertical = 6.dp, horizontal = 5.dp),
+                .padding(vertical = if (compact) 4.dp else 6.dp, horizontal = 5.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
@@ -89,7 +95,7 @@ fun ToolRail(
                         engine.selectTool(item.tool)
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     },
-                    size = 46.dp,
+                    size = buttonSize,
                     iconScale = 0.44f,
                     activeTint = if (item.tool == ToolType.HAND) Cyan else Violet
                 )

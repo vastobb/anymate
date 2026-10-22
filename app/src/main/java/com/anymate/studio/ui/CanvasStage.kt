@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.FilterNone
+import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Movie
@@ -72,6 +73,7 @@ import com.anymate.studio.model.ShapeKind
 import com.anymate.studio.model.StrokeElement
 import com.anymate.studio.model.ToolType
 import com.anymate.studio.model.Vec2
+import com.anymate.studio.ui.theme.AnyMateMetrics
 import com.anymate.studio.ui.theme.Cyan
 import com.anymate.studio.ui.theme.Hairline
 import com.anymate.studio.ui.theme.Ink800
@@ -92,6 +94,35 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 private data class ViewTransform(val left: Float, val top: Float, val scale: Float)
+
+/** Which studio chrome is surrounding the canvas. */
+enum class StudioLayout { PORTRAIT, LANDSCAPE }
+
+private data class StageInsets(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float
+)
+
+private fun stageInsets(
+    layout: StudioLayout,
+    compact: Boolean,
+    inspectorOpen: Boolean
+): StageInsets = if (layout == StudioLayout.LANDSCAPE) {
+    StageInsets(
+        left = if (compact) 56f else 66f,
+        top = if (compact) 50f else 56f,
+        right = when {
+            !inspectorOpen -> 18f
+            compact -> 188f
+            else -> 216f
+        },
+        bottom = if (compact) 76f else 90f
+    )
+} else {
+    StageInsets(left = 66f, top = 18f, right = 14f, bottom = 20f)
+}
 
 private data class StrokeDraft(
     val tool: ToolType,
@@ -130,7 +161,10 @@ private fun viewTransform(
 fun CanvasStage(
     engine: AnimationEngine,
     showPerf: Boolean,
-    onOpenAgent: () -> Unit,
+    layout: StudioLayout = StudioLayout.PORTRAIT,
+    inspectorOpen: Boolean = true,
+    showOverlays: Boolean = true,
+    onOpenMcp: () -> Unit,
     onOpenLayers: () -> Unit,
     onTextRequest: (Float, Float) -> Unit,
     onBlocked: (String) -> Unit,
@@ -140,6 +174,8 @@ fun CanvasStage(
     val haptics = LocalHapticFeedback.current
     var draftTick by remember { mutableIntStateOf(0) }
     var draft by remember { mutableStateOf<StrokeDraft?>(null) }
+    val compact = AnyMateMetrics.compact
+    val insets = stageInsets(layout, compact, inspectorOpen)
 
     val drawingTools = remember {
         setOf(
@@ -180,10 +216,10 @@ fun CanvasStage(
                 .fillMaxSize()
                 .semantics { contentDescription = "Animation canvas" }
                 .pointerInput(engine.selectedTool) {
-                    val leftInset = 66.dp.toPx()
-                    val topInset = 18.dp.toPx()
-                    val rightInset = 14.dp.toPx()
-                    val bottomInset = 20.dp.toPx()
+                    val leftInset = insets.left.dp.toPx()
+                    val topInset = insets.top.dp.toPx()
+                    val rightInset = insets.right.dp.toPx()
+                    val bottomInset = insets.bottom.dp.toPx()
                     val tapSlop = 14.dp.toPx()
 
                     fun transform() = viewTransform(
@@ -318,7 +354,7 @@ fun CanvasStage(
                                         try {
                                             val color = engine.sampleColorAt(project.x, project.y)
                                             if (color != null) {
-                                                engine.setColor(color)
+                                                engine.updateColor(color)
                                                 onColorPicked(color)
                                                 haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                                             }
@@ -429,7 +465,8 @@ fun CanvasStage(
                 engine,
                 size.width,
                 size.height,
-                66.dp.toPx(), 18.dp.toPx(), 14.dp.toPx(), 20.dp.toPx()
+                insets.left.dp.toPx(), insets.top.dp.toPx(),
+                insets.right.dp.toPx(), insets.bottom.dp.toPx()
             )
             val sheetW = engine.canvasWidth * transform.scale
             val sheetH = engine.canvasHeight * transform.scale
@@ -553,23 +590,25 @@ fun CanvasStage(
             )
         }
 
-        FrameBadges(
-            engine = engine,
-            showPerf = showPerf,
-            onOpenLayers = onOpenLayers,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 76.dp, top = 12.dp)
-        )
+        if (showOverlays) {
+            FrameBadges(
+                engine = engine,
+                showPerf = showPerf,
+                onOpenLayers = onOpenLayers,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 76.dp, top = 12.dp)
+            )
 
-        ViewControls(
-            engine = engine,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 12.dp, end = 12.dp)
-        )
+            ViewControls(
+                engine = engine,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 12.dp)
+            )
+        }
 
-        // Agent entrance.
+        // MCP entrance: the studio is driven by hand or by an agent over MCP.
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -577,7 +616,7 @@ fun CanvasStage(
                 .clip(CircleShape)
                 .background(Ink850.copy(alpha = 0.97f))
                 .border(1.dp, Violet.copy(alpha = 0.36f), CircleShape)
-                .clickable(onClick = onOpenAgent)
+                .clickable(onClick = onOpenMcp)
                 .padding(horizontal = 13.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -590,19 +629,21 @@ fun CanvasStage(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Rounded.AutoAwesome, null,
+                    Icons.Rounded.Hub, null,
                     tint = Color(0xFF0C0718), modifier = Modifier.size(12.dp)
                 )
             }
-            Text("Director", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text("Connect", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
 
-        EmptyCanvasHint(
-            engine = engine,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(start = 50.dp, end = 12.dp)
-        )
+        if (showOverlays) {
+            EmptyCanvasHint(
+                engine = engine,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(start = 50.dp, end = 12.dp)
+            )
+        }
     }
 }
 

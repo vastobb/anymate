@@ -62,6 +62,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("studio.seenWelcome", false)
         set(value) = sp.edit().putBoolean("studio.seenWelcome", value).apply()
 
+    var themeName: String
+        get() = sp.getString("studio.theme", "GRAPHITE") ?: "GRAPHITE"
+        set(value) = sp.edit().putString("studio.theme", value).apply()
+
+    var compactLayout: Boolean
+        get() = sp.getBoolean("studio.compact", false)
+        set(value) = sp.edit().putBoolean("studio.compact", value).apply()
+
     var recentColors: List<Long>
         get() = (sp.getString("studio.recentColors", "") ?: "")
             .split(",")

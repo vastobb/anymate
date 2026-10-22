@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anymate.studio.engine.AnimationEngine
 import com.anymate.studio.ui.theme.Amber
+import com.anymate.studio.ui.theme.AnyMateMetrics
 import com.anymate.studio.ui.theme.Cyan
 import com.anymate.studio.ui.theme.Ink800
 import com.anymate.studio.ui.theme.Ink900
@@ -57,7 +58,7 @@ fun QuickToolBar(
                     strokeWidth = 1.dp.toPx()
                 )
             }
-            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .padding(horizontal = 12.dp, vertical = if (AnyMateMetrics.compact) 3.dp else 7.dp)
     ) {
         val wide = maxWidth >= 420.dp
         Row(

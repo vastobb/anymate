@@ -80,7 +80,7 @@ fun ColorSheet(
 
     val color = hsvColor(hue, saturation, value, alpha.coerceAtLeast(0.02f))
     LaunchedEffect(color) {
-        engine.setColor(color)
+        engine.updateColor(color)
         hexText = color.toHex()
     }
 
@@ -90,7 +90,7 @@ fun ColorSheet(
         saturation = values[1]
         value = values[2]
         alpha = colorValue.alphaFraction().coerceAtLeast(0.02f)
-        engine.setColor(colorValue)
+        engine.updateColor(colorValue)
     }
 
     StudioBottomSheet(

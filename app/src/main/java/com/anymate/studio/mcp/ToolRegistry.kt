@@ -399,7 +399,7 @@ class ToolRegistry(
             schema("color" to str("Hex colour"), required = listOf("color"))
         ) { args ->
             val color = args.requireColor("color")
-            engine.setColor(color)
+            engine.updateColor(color)
             ToolResult("Active colour ${color.toHex()}.")
         }
 

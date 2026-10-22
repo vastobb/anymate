@@ -4,36 +4,23 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.anymate.studio.agent.AiAgent
 import com.anymate.studio.engine.AnimationEngine
-import com.anymate.studio.engine.Director
 import com.anymate.studio.engine.ExportManager
 import com.anymate.studio.engine.ProjectStore
 import com.anymate.studio.mcp.McpServer
 import com.anymate.studio.mcp.ToolRegistry
 import com.anymate.studio.model.CanvasPreset
-import kotlinx.coroutines.CancellationException
+import com.anymate.studio.ui.theme.ThemeKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-
-enum class ChatRole { USER, ASSISTANT, SYSTEM }
-
-data class ChatMessage(
-    val id: Long,
-    val role: ChatRole,
-    val text: String,
-    val at: Long = System.currentTimeMillis(),
-    val isError: Boolean = false
-)
 
 enum class ExportKind { GIF, PNG, ZIP }
 
@@ -49,6 +36,11 @@ data class ExportUiState(
 
 data class Notice(val id: Long, val text: String)
 
+/**
+ * AnyMate is a drawing studio first and an MCP host second: the app itself has
+ * no assistant. All AI behaviour lives in **anymate-controller**, which talks
+ * to this app over MCP.
+ */
 class StudioViewModel(app: Application) : AndroidViewModel(app) {
 
     val engine = AnimationEngine()
@@ -59,15 +51,8 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     val projectStore = ProjectStore(app, engine)
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var chatId = 0L
-    private var agentJob: Job? = null
     private var exportJob: Job? = null
 
-    val chat = mutableStateListOf<ChatMessage>()
-    var thinking by mutableStateOf(false)
-        private set
-    var agentStatus by mutableStateOf("")
-        private set
     var exportState by mutableStateOf<ExportUiState?>(null)
         private set
     var notice by mutableStateOf<Notice?>(null)
@@ -80,13 +65,11 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
 
     var mcpEnabled by mutableStateOf(prefs.mcpEnabled)
         private set
-    var agentEndpoint by mutableStateOf(prefs.agentEndpoint)
+    var themeKind by mutableStateOf(
+        runCatching { ThemeKind.valueOf(prefs.themeName) }.getOrDefault(ThemeKind.GRAPHITE)
+    )
         private set
-    var agentModel by mutableStateOf(prefs.agentModel)
-        private set
-    var agentKey by mutableStateOf(prefs.agentKey)
-        private set
-    var agentOffline by mutableStateOf(prefs.agentOffline)
+    var compactLayout by mutableStateOf(prefs.compactLayout)
         private set
     var perfHud by mutableStateOf(prefs.perfHud)
         private set
@@ -105,14 +88,6 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             notice = Notice(System.nanoTime(), "Restored \"${engine.projectName}\" from your last session")
         }
         startAutosaveLoop()
-
-        chat.add(
-            ChatMessage(
-                id = ++chatId,
-                role = ChatRole.ASSISTANT,
-                text = "I'm your AnyMate director. I can use every brush, layer and frame in this studio — and you'll watch each move happen live.\n\nTry “bouncing ball”, “walk cycle at 60 fps”, or “kinetic type HELLO”."
-            )
-        )
     }
 
     /** Debounced autosave: the document is written to internal storage. */
@@ -129,105 +104,6 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
-    }
-
-    // ---- Chat / agent -----------------------------------------------------
-    fun sendPrompt(text: String) {
-        val prompt = text.trim()
-        if (prompt.isEmpty() || thinking) return
-        chat.add(ChatMessage(++chatId, ChatRole.USER, prompt))
-        trimChat()
-        thinking = true
-        agentStatus = if (agentOffline) "Local Director" else "Thinking"
-        engine.setAgentRunning(true, agentStatus)
-        agentJob = viewModelScope.launch {
-            try {
-                if (agentOffline) runLocalDirector(prompt) else runModelAgent(prompt)
-            } catch (cancel: CancellationException) {
-                chat.add(
-                    ChatMessage(
-                        ++chatId, ChatRole.SYSTEM,
-                        "Stopped. Any partial frames stay on the timeline — tap Undo to remove them."
-                    )
-                )
-            } catch (t: Throwable) {
-                chat.add(
-                    ChatMessage(
-                        ++chatId, ChatRole.ASSISTANT,
-                        "I couldn't finish that. ${t.message ?: "Unknown error"}\n\nCheck the model endpoint, key and internet connection in Settings → AI Agent.",
-                        isError = true
-                    )
-                )
-            } finally {
-                thinking = false
-                agentStatus = ""
-                engine.setAgentRunning(false)
-                trimChat()
-            }
-        }
-    }
-
-    private suspend fun runLocalDirector(prompt: String) {
-        engine.setAgentRunning(true, "Local Director")
-        engine.beginUndoGroup("AI · local director")
-        try {
-            val result = Director.animate(prompt, engine) { done, total ->
-                engine.updateAgentProgress(done.toFloat() / total, "Directing frame $done/$total")
-                agentStatus = "Directing frame $done/$total"
-            }
-            engine.logTool(
-                "anymate_generate",
-                "Local Director · ${result.label} · ${result.frameCount} frames @ ${result.fps} fps",
-                true
-            )
-            chat.add(
-                ChatMessage(
-                    ++chatId, ChatRole.ASSISTANT,
-                    "Made **${result.label}** — ${result.frameCount} frames at ${result.fps} fps, appended at frame ${result.startFrame + 1}. It's looping on the canvas now.\n\nIt's one undo step. Ask for a polish pass, or switch to a connected model in Settings for fully bespoke motion."
-                )
-            )
-        } finally {
-            engine.endUndoGroup()
-            engine.setAgentRunning(false)
-        }
-    }
-
-    private suspend fun runModelAgent(prompt: String) {
-        engine.setAgentRunning(true, "Thinking with ${agentModel.ifBlank { "your model" }}")
-        agentStatus = "Thinking with $agentModel"
-        val agent = AiAgent(prefs, registry)
-        val result = agent.run(prompt) { status ->
-            mainHandler.post {
-                engine.setAgentRunning(true, status)
-                agentStatus = status
-            }
-        }
-        val suffix = if (result.toolCalls > 0) {
-            "\n\n_${result.toolCalls} tool calls · ${result.steps} model turns · all changes are live on the canvas._"
-        } else ""
-        chat.add(ChatMessage(++chatId, ChatRole.ASSISTANT, result.text + suffix))
-        engine.setAgentRunning(false)
-    }
-
-    fun stopAgent() {
-        agentJob?.cancel()
-    }
-
-    fun clearChat() {
-        if (thinking) stopAgent()
-        chat.clear()
-        chatId = 0
-        chat.add(
-            ChatMessage(
-                id = ++chatId,
-                role = ChatRole.ASSISTANT,
-                text = "Fresh page. What should we make move?"
-            )
-        )
-    }
-
-    private fun trimChat() {
-        while (chat.size > 80) chat.removeAt(0)
     }
 
     // ---- Settings ---------------------------------------------------------
@@ -250,24 +126,19 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
         notice = Notice(System.nanoTime(), "New MCP token generated")
     }
 
-    fun updateAgentEndpoint(value: String) {
-        agentEndpoint = value
-        prefs.agentEndpoint = value
+    fun updateTheme(kind: ThemeKind) {
+        val previousPaper = themeKind.palette.paper.toLong()
+        themeKind = kind
+        prefs.themeName = kind.name
+        // Keep the artboard in step with the theme unless the artist chose a colour.
+        if (engine.background == previousPaper) {
+            engine.updateBackground(kind.palette.paper.toLong())
+        }
     }
 
-    fun updateAgentModel(value: String) {
-        agentModel = value
-        prefs.agentModel = value
-    }
-
-    fun updateAgentKey(value: String) {
-        agentKey = value
-        prefs.agentKey = value
-    }
-
-    fun updateAgentOffline(value: Boolean) {
-        agentOffline = value
-        prefs.agentOffline = value
+    fun updateCompact(value: Boolean) {
+        compactLayout = value
+        prefs.compactLayout = value
     }
 
     fun updatePerfHud(value: Boolean) {
@@ -297,7 +168,12 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Project ----------------------------------------------------------
     fun createProject(name: String, preset: CanvasPreset, fps: Int) {
-        engine.newProject(name = name, preset = preset, fpsValue = fps)
+        engine.newProject(
+            name = name,
+            preset = preset,
+            fpsValue = fps,
+            backgroundColor = themeKind.palette.paper.toLong()
+        )
         notice = Notice(System.nanoTime(), "New ${preset.width}×${preset.height} project at $fps fps")
     }
 
@@ -329,7 +205,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
                     running = false, progress = 1f, label = "Ready · ${file.name}", file = file
                 )
                 notice = Notice(System.nanoTime(), "Export ready: ${file.name}")
-            } catch (cancel: CancellationException) {
+            } catch (cancel: kotlinx.coroutines.CancellationException) {
                 exportState = exportState?.copy(running = false, label = "Export cancelled", error = "Cancelled")
             } catch (t: Throwable) {
                 exportState = exportState?.copy(
@@ -393,7 +269,6 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         super.onCleared()
-        agentJob?.cancel()
         exportJob?.cancel()
         server.stopServer()
     }

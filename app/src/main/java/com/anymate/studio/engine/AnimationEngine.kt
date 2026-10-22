@@ -60,7 +60,7 @@ class AnimationEngine {
         private set
     var fps by mutableIntStateOf(24)
         private set
-    var background by mutableLongStateOf(0xFFF7F4EC)
+    var background by mutableLongStateOf(0xFFF4F5F7)
         private set
 
     val frames = mutableStateListOf<Frame>()
@@ -266,7 +266,7 @@ class AnimationEngine {
         brushOpacity = value.coerceIn(0.02f, 1f)
     }
 
-    fun setColor(color: Long) {
+    fun updateColor(color: Long) {
         strokeColor = color
     }
 

@@ -76,6 +76,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.anymate.studio.ui.theme.AccentGradient
 import com.anymate.studio.ui.theme.Amber
+import com.anymate.studio.ui.theme.AnyMateMetrics
 import com.anymate.studio.ui.theme.Danger
 import com.anymate.studio.ui.theme.Hairline
 import com.anymate.studio.ui.theme.Ink700
@@ -453,6 +454,7 @@ fun StudioBottomSheet(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val horizontal = if (AnyMateMetrics.compact) 14.dp else 20.dp
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = state,
@@ -467,7 +469,7 @@ fun StudioBottomSheet(
                 .background(
                     Brush.verticalGradient(listOf(Color(0xFF1A1623), Color(0xFF100D15)))
                 )
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = horizontal)
                 .padding(bottom = 14.dp),
             content = content
         )

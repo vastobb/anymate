@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.material.icons.rounded.Redo
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Stop
@@ -72,7 +74,7 @@ fun StudioScreen(vm: StudioViewModel) {
     val engine = vm.engine
     val snackbar = remember { SnackbarHostState() }
 
-    var showAgent by remember { mutableStateOf(false) }
+    var showMcp by remember { mutableStateOf(false) }
     var showColor by remember { mutableStateOf(false) }
     var showLayers by remember { mutableStateOf(false) }
     var showToolSettings by remember { mutableStateOf(false) }
@@ -81,9 +83,10 @@ fun StudioScreen(vm: StudioViewModel) {
     var showNewProject by remember { mutableStateOf(false) }
     var showTextEntry by remember { mutableStateOf(false) }
     var textPoint by remember { mutableStateOf(Offset.Zero) }
+    var inspectorOpen by remember { mutableStateOf(true) }
 
     fun openExclusive(target: String) {
-        showAgent = target == "agent"
+        showMcp = target == "mcp"
         showColor = target == "color"
         showLayers = target == "layers"
         showToolSettings = target == "tool"
@@ -121,82 +124,52 @@ fun StudioScreen(vm: StudioViewModel) {
         }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(Color(0xFF0F0C15), Ink950, Color(0xFF070609)))
+                Brush.verticalGradient(listOf(Ink950, Color(0xFF070609)))
             )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            listOf(Violet.copy(alpha = 0.10f), Color.Transparent),
-                            center = Offset(size.width * 0.55f, 0f),
-                            radius = size.width * 0.85f
-                        ),
-                        radius = size.width * 0.85f,
-                        center = Offset(size.width * 0.55f, 0f)
-                    )
-                }
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-        ) {
-            StudioTopBar(
-                vm = vm,
-                onOpenSettings = { openExclusive("settings") },
-                onOpenExport = { openExclusive("export") }
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                CanvasStage(
-                    engine = engine,
-                    showPerf = vm.perfHud,
-                    onOpenAgent = { openExclusive("agent") },
+        val landscape = maxWidth > maxHeight
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (landscape) {
+                LandscapeStudio(
+                    vm = vm,
+                    inspectorOpen = inspectorOpen,
+                    onToggleInspector = { inspectorOpen = !inspectorOpen },
+                    onOpenMcp = { openExclusive("mcp") },
                     onOpenLayers = { openExclusive("layers") },
+                    onOpenColor = { openExclusive("color") },
+                    onOpenToolSettings = { openExclusive("tool") },
+                    onOpenSettings = { openExclusive("settings") },
+                    onOpenExport = { openExclusive("export") },
+                    onOpenNewProject = { openExclusive("new") },
                     onTextRequest = { x, y ->
                         textPoint = Offset(x, y)
                         showTextEntry = true
                     },
                     onBlocked = { vm.notify(it) },
-                    onColorPicked = { color -> vm.rememberColor(color) }
+                    onColorPicked = { vm.rememberColor(it) }
                 )
-                ToolRail(
-                    engine = engine,
-                    modifier = Modifier.align(Alignment.CenterStart)
+            } else {
+                PortraitStudio(
+                    vm = vm,
+                    onOpenMcp = { openExclusive("mcp") },
+                    onOpenLayers = { openExclusive("layers") },
+                    onOpenColor = { openExclusive("color") },
+                    onOpenToolSettings = { openExclusive("tool") },
+                    onOpenSettings = { openExclusive("settings") },
+                    onOpenExport = { openExclusive("export") },
+                    onOpenNewProject = { openExclusive("new") },
+                    onTextRequest = { x, y ->
+                        textPoint = Offset(x, y)
+                        showTextEntry = true
+                    },
+                    onBlocked = { vm.notify(it) },
+                    onColorPicked = { vm.rememberColor(it) }
                 )
             }
-
-            StudioStatusBar(
-                vm = vm,
-                onOpenAgent = { openExclusive("agent") },
-                onOpenSettings = { openExclusive("settings") }
-            )
-
-            QuickToolBar(
-                engine = engine,
-                onOpenColor = { openExclusive("color") },
-                onOpenLayers = { openExclusive("layers") },
-                onOpenToolSettings = { openExclusive("tool") }
-            )
-
-            Timeline(
-                engine = engine,
-                onNewProject = { openExclusive("new") },
-                onOpenExport = { openExclusive("export") },
-                onNotice = vm::notify
-            )
         }
 
         SnackbarHost(
@@ -204,7 +177,7 @@ fun StudioScreen(vm: StudioViewModel) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, bottom = 154.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 100.dp)
         ) { data ->
             Snackbar(
                 shape = RoundedCornerShape(13.dp),
@@ -216,12 +189,8 @@ fun StudioScreen(vm: StudioViewModel) {
         }
     }
 
-    if (showAgent) {
-        AgentSheet(
-            vm = vm,
-            onDismiss = { showAgent = false },
-            onOpenSettings = { openExclusive("settings") }
-        )
+    if (showMcp) {
+        McpSheet(vm = vm, onDismiss = { showMcp = false })
     }
     if (showColor) {
         ColorSheet(
@@ -285,9 +254,77 @@ fun StudioScreen(vm: StudioViewModel) {
     }
 }
 
+/** Portrait fallback for phones that are rotated or tablets in portrait. */
+@Composable
+private fun PortraitStudio(
+    vm: StudioViewModel,
+    onOpenMcp: () -> Unit,
+    onOpenLayers: () -> Unit,
+    onOpenColor: () -> Unit,
+    onOpenToolSettings: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenExport: () -> Unit,
+    onOpenNewProject: () -> Unit,
+    onTextRequest: (Float, Float) -> Unit,
+    onBlocked: (String) -> Unit,
+    onColorPicked: (Long) -> Unit
+) {
+    val engine = vm.engine
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
+        StudioTopBar(
+            vm = vm,
+            onOpenMcp = onOpenMcp,
+            onOpenSettings = onOpenSettings,
+            onOpenExport = onOpenExport
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            CanvasStage(
+                engine = engine,
+                showPerf = vm.perfHud,
+                layout = StudioLayout.PORTRAIT,
+                onOpenMcp = onOpenMcp,
+                onOpenLayers = onOpenLayers,
+                onTextRequest = onTextRequest,
+                onBlocked = onBlocked,
+                onColorPicked = onColorPicked
+            )
+            ToolRail(
+                engine = engine,
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
+        }
+        StudioStatusBar(
+            vm = vm,
+            onOpenMcp = onOpenMcp,
+            onOpenSettings = onOpenSettings
+        )
+        QuickToolBar(
+            engine = engine,
+            onOpenColor = onOpenColor,
+            onOpenLayers = onOpenLayers,
+            onOpenToolSettings = onOpenToolSettings
+        )
+        Timeline(
+            engine = engine,
+            onNewProject = onOpenNewProject,
+            onOpenExport = onOpenExport,
+            onNotice = vm::notify
+        )
+    }
+}
+
 @Composable
 private fun StudioTopBar(
     vm: StudioViewModel,
+    onOpenMcp: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenExport: () -> Unit
 ) {
@@ -339,24 +376,19 @@ private fun StudioTopBar(
             enabled = engine.canRedo,
             size = 36.dp
         )
-        Box {
-            StudioIconButton(
-                icon = Icons.Rounded.Settings,
-                contentDescription = "Studio and MCP settings",
-                onClick = onOpenSettings,
-                size = 38.dp
-            )
-            if (vm.server.running) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 7.dp, end = 7.dp)
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(Success)
-                )
-            }
-        }
+        StudioIconButton(
+            icon = Icons.Rounded.Hub,
+            contentDescription = "Connect an agent",
+            onClick = onOpenMcp,
+            size = 38.dp,
+            tint = if (vm.server.running) Success else TextMuted
+        )
+        StudioIconButton(
+            icon = Icons.Rounded.Settings,
+            contentDescription = "Studio settings",
+            onClick = onOpenSettings,
+            size = 38.dp
+        )
         Spacer(Modifier.width(2.dp))
         Box(
             modifier = Modifier
@@ -369,7 +401,7 @@ private fun StudioTopBar(
             androidx.compose.material3.Icon(
                 Icons.Rounded.FileDownload,
                 contentDescription = "Export",
-                tint = Color(0xFF100A20),
+                tint = Color(0xFF0B0714),
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -379,7 +411,7 @@ private fun StudioTopBar(
 @Composable
 private fun StudioStatusBar(
     vm: StudioViewModel,
-    onOpenAgent: () -> Unit,
+    onOpenMcp: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val engine = vm.engine
@@ -394,19 +426,11 @@ private fun StudioStatusBar(
     val active = engine.agentBusy || recentAgent
     val latestEvent = engine.agentEvents.firstOrNull()
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(33.dp)
-            .background(
-                if (active) {
-                    Brush.horizontalGradient(
-                        listOf(Violet.copy(alpha = 0.17f), Cyan.copy(alpha = 0.07f), Ink900)
-                    )
-                } else {
-                    Brush.horizontalGradient(listOf(Ink900, Ink900))
-                }
-            )
+            .background(Ink900)
             .drawBehind {
                 drawLine(
                     color = Color(0x12FFFFFF),
@@ -414,74 +438,42 @@ private fun StudioStatusBar(
                     end = Offset(size.width, 0f),
                     strokeWidth = 1.dp.toPx()
                 )
-                if (active && engine.agentBusy && engine.agentProgress > 0f) {
-                    drawRect(
-                        brush = AccentGradient,
-                        topLeft = Offset(0f, size.height - 2.dp.toPx()),
-                        size = androidx.compose.ui.geometry.Size(
-                            size.width * engine.agentProgress.coerceIn(0f, 1f),
-                            2.dp.toPx()
-                        )
-                    )
-                }
             }
-            .clickable {
-                if (active) onOpenAgent() else onOpenSettings()
-            }
+            .clickable { if (active) onOpenMcp() else onOpenSettings() }
             .padding(horizontal = 13.dp),
-        contentAlignment = Alignment.CenterStart
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            LiveDot(
-                color = when {
-                    active -> Violet
-                    vm.server.running -> Success
-                    else -> TextMuted
-                },
-                6.dp
-            )
-            Spacer(Modifier.width(7.dp))
-            Text(
-                text = when {
-                    active -> "LIVE · ${engine.agentLabel.ifBlank {
-                        latestEvent?.tool?.removePrefix("anymate_")?.replace('_', ' ') ?: "Agent editing"
-                    }}"
-                    vm.server.running -> "MCP LIVE · ${vm.server.localIp}:${vm.server.port}"
-                    else -> "LOCAL STUDIO · MCP OFF"
-                },
-                color = if (active) TextPrimary else TextMuted,
-                fontSize = 8.sp,
-                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-                letterSpacing = if (active) 0.5.sp else 0.2.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            if (vm.thinking) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(Danger.copy(alpha = 0.13f))
-                        .clickable { vm.stopAgent() }
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    androidx.compose.material3.Icon(
-                        Icons.Rounded.Stop, null,
-                        tint = Danger, modifier = Modifier.size(11.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text("STOP", color = Danger, fontSize = 7.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
-                }
-            } else {
-                Text(
-                    "${engine.fps} FPS · ${engine.frames.size} F · ${(engine.zoom * 100).roundToInt()}%",
-                    color = TextMuted,
-                    fontFamily = Mono,
-                    fontSize = 8.sp,
-                    maxLines = 1
-                )
-            }
-        }
+        LiveDot(
+            color = when {
+                active -> Violet
+                vm.server.running -> Success
+                else -> TextMuted
+            },
+            6.dp
+        )
+        Spacer(Modifier.width(7.dp))
+        Text(
+            text = when {
+                active -> "AGENT LIVE · ${engine.agentLabel.ifBlank {
+                    latestEvent?.tool?.removePrefix("anymate_")?.replace('_', ' ') ?: "editing"
+                }}"
+                vm.server.running -> "MCP LIVE · ${vm.server.localIp}:${vm.server.port}"
+                else -> "LOCAL STUDIO · MCP OFF"
+            },
+            color = if (active) TextPrimary else TextMuted,
+            fontSize = 8.sp,
+            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+            letterSpacing = 0.3.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            "${engine.fps} FPS · ${engine.frames.size} F · ${(engine.zoom * 100).roundToInt()}%",
+            color = TextMuted,
+            fontFamily = Mono,
+            fontSize = 8.sp,
+            maxLines = 1
+        )
     }
 }

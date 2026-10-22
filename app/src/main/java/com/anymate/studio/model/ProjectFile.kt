@@ -14,7 +14,7 @@ data class ProjectFile(
     val width: Int = 900,
     val height: Int = 900,
     val fps: Int = 24,
-    val background: Long = 0xFFF7F4EC,
+    val background: Long = 0xFFF4F5F7,
     val currentFrame: Int = 0,
     val layers: List<LayerFile> = emptyList(),
     val frames: List<FrameFile> = emptyList()
