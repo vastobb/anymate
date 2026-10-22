@@ -163,22 +163,26 @@ Use anymate_batch so the whole sequence is one undo step, and finish with anymat
 
 ## The controller — where the AI lives
 
-[anymate-controller](https://github.com/vastobb/anymate-controller) is the brain box that sits
-beside the phone. It is a separate, dependency-free Python app:
+**[anymate-controller](https://github.com/vastobb/anymate-controller)** is a second Android app that
+pairs with this one over MCP:
+
+- **AnyMate Controller APK** (landscape, installable) — the AI director, an on-device **Python**
+  runtime, a **terminal** with pipes and redirection, **GIF/MP4 encoding**, animation design tools
+  (palettes, easing, timing plans, storyboards, sprite sheets) and a live preview of the phone's
+  canvas. Download it from the
+  [controller releases](https://github.com/vastobb/anymate-controller/releases).
+- **Optional desktop runner** (`anymate-controller/desktop`) — the same toolbox for a workstation,
+  where real ffmpeg and a real Python live. It speaks MCP too, so one client can drive the phone
+  *and* the desktop.
 
 ```bash
+# on your computer, with the phone app running
 anymate-controller config --set anymate_url=http://192.168.1.20:8420/mcp
 anymate-controller config --set anymate_token=am_xxxxxxxx
-anymate-controller serve            # web console with a live canvas preview
+anymate-controller serve        # web console with a live canvas preview
 anymate-controller chat "make a 60 fps walk cycle on the phone and play it"
-anymate-controller mcp              # expose the whole toolbox over MCP (stdio)
+anymate-controller mcp          # expose the whole toolbox over MCP (stdio)
 ```
-
-It carries the **AI agent** (any OpenAI-compatible endpoint), **ffmpeg** (probe, convert,
-extract frames, GIF, concat), **Python** and a **terminal** sandboxed to a workspace folder, plus
-an animation design system (palettes, easing curves, timing plans, storyboards, sprite sheets and
-a dependency-free PNG codec). It also re-exposes the phone's tools, so Claude or Cursor can drive
-the phone *and* the workstation from one place.
 
 ## Sessions and project files
 
