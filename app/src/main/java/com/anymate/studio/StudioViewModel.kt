@@ -15,6 +15,7 @@ import com.anymate.studio.mcp.McpServer
 import com.anymate.studio.mcp.ToolRegistry
 import com.anymate.studio.model.CanvasPreset
 import com.anymate.studio.ui.theme.ThemeKind
+import com.anymate.studio.util.toArgbLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -127,12 +128,12 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun updateTheme(kind: ThemeKind) {
-        val previousPaper = themeKind.palette.paper.toLong()
+        val previousPaper = themeKind.palette.paper.toArgbLong()
         themeKind = kind
         prefs.themeName = kind.name
         // Keep the artboard in step with the theme unless the artist chose a colour.
         if (engine.background == previousPaper) {
-            engine.updateBackground(kind.palette.paper.toLong())
+            engine.updateBackground(kind.palette.paper.toArgbLong())
         }
     }
 
@@ -172,7 +173,7 @@ class StudioViewModel(app: Application) : AndroidViewModel(app) {
             name = name,
             preset = preset,
             fpsValue = fps,
-            backgroundColor = themeKind.palette.paper.toLong()
+            backgroundColor = themeKind.palette.paper.toArgbLong()
         )
         notice = Notice(System.nanoTime(), "New ${preset.width}×${preset.height} project at $fps fps")
     }
