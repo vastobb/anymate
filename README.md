@@ -40,6 +40,7 @@ idea: **the artist and the agent share one document**.
 | AI | Offline Local Director (no key, no network) **or** any OpenAI-compatible endpoint (OpenAI, OpenRouter, Ollama, LM Studio, Groq…) with tool calling and visual feedback |
 | MCP | Streamable HTTP transport, bearer-token auth, tools, resources, prompts, live PNG snapshots, export downloads |
 | Export | Animated GIF (popularity-quantised palette), full-resolution PNG, numbered PNG sequence ZIP, share sheet |
+| Persistence | Debounced autosave to internal storage, automatic restore on launch, shareable `.anymate` project files |
 
 ## Install
 
@@ -150,6 +151,13 @@ Use anymate_batch so the whole sequence is one undo step, and finish with anymat
 - **Connected model** — any OpenAI-compatible `/chat/completions` endpoint. The model receives
   every studio tool, calls them for real, and receives PNG snapshots of its own work as visual
   feedback.
+
+## Sessions and project files
+
+Work is autosaved to the device (debounced, a second after you stop) and restored the next time
+AnyMate opens. **Export → AnyMate project** writes the whole editable document — frames, layers,
+strokes, fills and type — into a single `.anymate` file you can share, back up or move to another
+phone.
 
 ## Architecture
 
