@@ -40,9 +40,9 @@ internal fun ToolRegistry.registerAnimationTools() {
             "opacity" to number("0..1", 0.0, 1.0),
             "tool" to enumStr("Stroke tool", listOf("pen", "pencil", "brush")),
             "frame" to int("Frame index; default current", 0.0, 2000.0),
-            "layer" to int("Layer index; default current", 0.0, 100.0)
-        ),
-        required = listOf("points")
+            "layer" to int("Layer index; default current", 0.0, 100.0),
+            required = listOf("points")
+        )
     ) { args ->
         val control = args.points()
         require(control.size >= 2) { "A curve needs at least two points." }
@@ -77,9 +77,9 @@ internal fun ToolRegistry.registerAnimationTools() {
             "stroke" to str("Outline colour hex"),
             "easing" to enumStr("Timing", listOf("linear", "ease", "smooth", "bounce")),
             "start_frame" to int("Where to start; default after the last frame", 0.0, 2000.0),
-            "layer" to int("Layer index; default current", 0.0, 100.0)
-        ),
-        required = listOf("path")
+            "layer" to int("Layer index; default current", 0.0, 100.0),
+            required = listOf("path")
+        )
     ) { args ->
         val control = args.points()
         require(control.size >= 2) { "A path needs at least two points." }
@@ -137,9 +137,9 @@ internal fun ToolRegistry.registerAnimationTools() {
         schema(
             "frame" to int("Frame index; default current", 0.0, 2000.0),
             "dx" to number("Horizontal offset px"),
-            "dy" to number("Vertical offset px")
-        ),
-        required = listOf("dx", "dy")
+            "dy" to number("Vertical offset px"),
+            required = listOf("dx", "dy")
+        )
     ) { args ->
         val moved = engine.offsetFrame(
             args.int("frame") ?: -1,
@@ -154,9 +154,9 @@ internal fun ToolRegistry.registerAnimationTools() {
         "Move a frame to a different position on the timeline.",
         schema(
             "from" to int("Frame to move", 0.0, 2000.0),
-            "to" to int("Destination index", 0.0, 2000.0)
-        ),
-        required = listOf("from", "to")
+            "to" to int("Destination index", 0.0, 2000.0),
+            required = listOf("from", "to")
+        )
     ) { args ->
         val current = engine.reorderFrame(args.requireInt("from"), args.requireInt("to"))
         ToolResult("Frame moved. Current frame is now $current.")
@@ -197,9 +197,9 @@ internal fun ToolRegistry.registerAnimationTools() {
                 put("type", "array")
                 put("description", "Element specs: shape | stroke | polygon | text")
                 put("items", buildJsonObject { put("type", "object") })
-            }
-        ),
-        required = listOf("elements")
+            },
+            required = listOf("elements")
+        )
     ) { args ->
         val frameIndex = args.int("frame") ?: engine.currentIndex
         val layerIndex = args.int("layer") ?: engine.currentLayer
@@ -275,9 +275,9 @@ internal fun ToolRegistry.registerAnimationTools() {
         schema(
             "frame" to int("Frame index; default current", 0.0, 2000.0),
             "layer" to int("Layer index; default current", 0.0, 100.0),
-            "element_id" to int("Element id")
-        ),
-        required = listOf("element_id")
+            "element_id" to int("Element id"),
+            required = listOf("element_id")
+        )
     ) { args ->
         val frameIndex = args.int("frame") ?: engine.currentIndex
         val layerIndex = args.int("layer") ?: engine.currentLayer
@@ -316,9 +316,9 @@ internal fun ToolRegistry.registerAnimationTools() {
         "Resize the canvas. The artwork keeps its coordinates, so resize before drawing.",
         schema(
             "width" to int("Canvas width px", 240.0, 4096.0),
-            "height" to int("Canvas height px", 240.0, 4096.0)
-        ),
-        required = listOf("width", "height")
+            "height" to int("Canvas height px", 240.0, 4096.0),
+            required = listOf("width", "height")
+        )
     ) { args ->
         engine.updateCanvasSize(args.requireInt("width"), args.requireInt("height"))
         ToolResult("Canvas is now ${engine.canvasWidth}×${engine.canvasHeight}.")
@@ -329,9 +329,9 @@ internal fun ToolRegistry.registerAnimationTools() {
         "Set the in/out points of the loop that plays back.",
         schema(
             "start" to int("First frame of the loop", 0.0, 2000.0),
-            "end" to int("Last frame of the loop", 0.0, 2000.0)
-        ),
-        required = listOf("start", "end")
+            "end" to int("Last frame of the loop", 0.0, 2000.0),
+            required = listOf("start", "end")
+        )
     ) { args ->
         engine.updatePlaybackRange(args.requireInt("start"), args.requireInt("end"))
         ToolResult("Loop range ${engine.rangeStart}..${engine.rangeEnd}.")
