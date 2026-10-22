@@ -6,7 +6,7 @@
 
 **A 2D animation studio for Android that a human and an AI agent can drive at the same time.**
 
-One canvas. Real drawing tools. A built-in MCP server. An AI director that paints every frame live.
+One canvas. Real drawing tools. A built-in MCP server. And a companion controller that brings the AI.
 
 [![Build AnyMate APK](https://github.com/vastobb/anymate/actions/workflows/build.yml/badge.svg)](https://github.com/vastobb/anymate/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/vastobb/anymate.svg)](https://github.com/vastobb/anymate/releases/latest)
@@ -17,28 +17,43 @@ One canvas. Real drawing tools. A built-in MCP server. An AI director that paint
 
 ## What AnyMate is
 
-AnyMate is a touch-first frame-by-frame animation app for Android, built around a single
-idea: **the artist and the agent share one document**.
+AnyMate is a **landscape-first, touch-first frame-by-frame animation app** for Android, built
+around a single idea: **the artist and the agent share one document**.
 
-- **Human side** — pencil, ink pen, brush, eraser, flood fill, shapes, type, colour picker,
-  layers, onion skin, timeline, playback at 12 / 24 / 30 / 60 fps, GIF + PNG export.
+- **Human side** — pencil, pressure-aware ink pen, soft brush, eraser, flood fill, shapes, type,
+  colour picker, layers, onion skin, timeline, playback at 12 / 24 / 30 / 60 fps, GIF + PNG export.
 - **Agent side** — a real **Model Context Protocol** server runs inside the app. Any MCP client
-  (Claude, Cursor, VS Code, your own agent) can draw, animate, play, inspect and export through
-  ~40 tools, and it can *see* the canvas through PNG snapshots.
-- **Both together** — the in-app **Director** (offline templates, or any OpenAI-compatible model)
-  paints frames one by one while you watch, and every action is a single undo step.
+  (Claude, Cursor, VS Code, [anymate-controller](https://github.com/vastobb/anymate-controller))
+  can draw, animate, play, inspect and export through ~55 tools, and it can *see* the canvas
+  through PNG snapshots and sprite sheets.
+- **Together** — [anymate-controller](https://github.com/vastobb/anymate-controller) is the brain
+  box: an AI agent, ffmpeg, Python, a terminal and a full animation design system, all local, all
+  driving this canvas.
+
+> The app itself contains **no assistant**. The phone stays fast, offline and focused; the agent
+> lives in the controller.
+
+## What's new in 1.1
+
+| | |
+|---|---|
+| **Landscape studio** | The app runs in landscape with a floating chrome layout: tool rail left, inspector right, slim timeline at the bottom — the canvas keeps the rest of the screen. Pinch-zoom, two-finger pan, one-finger draw that never fights the UI. |
+| **Three art-directed themes** | **Graphite** (cool neutral), **Warm Neutral** (sand and clay) and **Midnight Slate** (deep blue). Switching a theme restyles the whole studio, artboard included. |
+| **Compact layout** | One switch for a denser studio: smaller tools, shorter timeline, tighter sheets — more canvas. |
+| **Animation-grade MCP** | New tools: `anymate_draw_curve`, `anymate_motion_path`, `anymate_offset_frame`, `anymate_reorder_frame`, `anymate_merge_layers`, `anymate_get_frame`, `anymate_replace_layer`, `anymate_delete_element`, `anymate_set_grid`, `anymate_set_canvas`, `anymate_set_playback_range`, `anymate_get_render_info`, `anymate_render_sprite_sheet`. |
+| **anymate-controller** | A separate app: AI agent + ffmpeg + Python + terminal + animation design tools, exposed over MCP. |
 
 ## Highlights
 
 | Area | Detail |
 |------|--------|
 | Drawing | Pressure-aware strokes, soft brush, tapered ink, eraser, flood fill with tolerance, line / rect / ellipse / arrow, text with custom typeface |
-| Timeline | Frame add / duplicate / delete / clear, onion skin (prev + next), looping playback, thumbnails that never block the draw thread |
+| Timeline | Frame add / duplicate / delete / reorder / clear, onion skin (prev + next), looping playback, thumbnails that never block the draw thread |
 | Performance | Vector scene graph, vsync-bounded rendering, batched agent ingest, lazy thumbnails — built to absorb **60+ frame writes per second** without stutter |
-| Colour | Full HSV + alpha picker, curated studio palette, recents, eyedropper, hex entry |
+| Colour | Full HSV + alpha picker, curated studio palette, recents, eyedropper, hex entry, drawing grid |
+| Layout | Landscape-first floating chrome, three themes, compact density mode |
 | Layers | Add / rename / reorder / lock / hide / opacity, per-layer isolation so erasers behave correctly |
-| AI | Offline Local Director (no key, no network) **or** any OpenAI-compatible endpoint (OpenAI, OpenRouter, Ollama, LM Studio, Groq…) with tool calling and visual feedback |
-| MCP | Streamable HTTP transport, bearer-token auth, tools, resources, prompts, live PNG snapshots, export downloads |
+| MCP | Streamable HTTP transport, bearer-token auth, ~55 tools, resources, prompts, live PNG snapshots, sprite sheets, export downloads |
 | Export | Animated GIF (popularity-quantised palette), full-resolution PNG, numbered PNG sequence ZIP, share sheet |
 | Persistence | Debounced autosave to internal storage, automatic restore on launch, shareable `.anymate` project files |
 
@@ -117,12 +132,18 @@ Use the tiny bridge shipped in `mcp-bridge/`:
 **Tools & colour** — `anymate_set_tool`, `anymate_set_color`, `anymate_get_palette`
 
 **History & playback** — `anymate_undo`, `anymate_redo`, `anymate_play`, `anymate_pause`,
-`anymate_seek`, `anymate_set_loop`, `anymate_set_onion_skin`
+`anymate_seek`, `anymate_set_loop`, `anymate_set_onion_skin`, `anymate_set_playback_range`
 
-**Preview & export** — `anymate_snapshot` (returns a PNG image), `anymate_export_gif`,
-`anymate_export_png`, `anymate_export_frames`
+**Animation** — `anymate_draw_curve` (smooth Catmull-Rom), `anymate_motion_path`
+(animate a shape along a path), `anymate_offset_frame`, `anymate_reorder_frame`,
+`anymate_merge_layers`, `anymate_get_frame`, `anymate_replace_layer`,
+`anymate_delete_element`, `anymate_set_grid`, `anymate_set_canvas`, `anymate_get_render_info`
 
-**Directing** — `anymate_generate` (offline director), `anymate_batch` (many calls in one
+**Preview & export** — `anymate_snapshot` (returns a PNG image),
+`anymate_render_sprite_sheet` (every frame in one contact sheet),
+`anymate_export_gif`, `anymate_export_png`, `anymate_export_frames`
+
+**Directing** — `anymate_generate` (offline motion presets), `anymate_batch` (many calls in one
 request → one undo step)
 
 **Resources** — `anymate://preview/current` (PNG), `anymate://project/state` (JSON)
@@ -140,17 +161,24 @@ parallax background on layer 0, the plane on layer 1, trails on layer 2.
 Use anymate_batch so the whole sequence is one undo step, and finish with anymate_play.
 ```
 
-## The in-app Director
+## The controller — where the AI lives
 
-*Settings → AI agent* switches between two modes:
+[anymate-controller](https://github.com/vastobb/anymate-controller) is the brain box that sits
+beside the phone. It is a separate, dependency-free Python app:
 
-- **Local Director (offline)** — no key, no network. It interprets motion briefs
-  (*bouncing ball, walk cycle, fireworks at 60 fps, kinetic type "HELLO", pulse rings,
-  heart loop, solar orbit*) and paints them frame by frame, live, with the same drawing
-  primitives an agent uses.
-- **Connected model** — any OpenAI-compatible `/chat/completions` endpoint. The model receives
-  every studio tool, calls them for real, and receives PNG snapshots of its own work as visual
-  feedback.
+```bash
+anymate-controller config --set anymate_url=http://192.168.1.20:8420/mcp
+anymate-controller config --set anymate_token=am_xxxxxxxx
+anymate-controller serve            # web console with a live canvas preview
+anymate-controller chat "make a 60 fps walk cycle on the phone and play it"
+anymate-controller mcp              # expose the whole toolbox over MCP (stdio)
+```
+
+It carries the **AI agent** (any OpenAI-compatible endpoint), **ffmpeg** (probe, convert,
+extract frames, GIF, concat), **Python** and a **terminal** sandboxed to a workspace folder, plus
+an animation design system (palettes, easing curves, timing plans, storyboards, sprite sheets and
+a dependency-free PNG codec). It also re-exposes the phone's tools, so Claude or Cursor can drive
+the phone *and* the workstation from one place.
 
 ## Sessions and project files
 
@@ -164,15 +192,14 @@ phone.
 ```
 app/src/main/java/com/anymate/studio/
 ├── engine/          AnimationEngine (document + history), Rasterizer (single source of truth
-│                    for editor/thumbnails/GIF/snapshots), Director (offline generative
-│                    engine), GifEncoder, ExportManager
-├── mcp/             ToolRegistry (one execution surface for MCP *and* the AI agent),
-│                    McpServer (NanoHTTPD, JSON-RPC / Streamable HTTP)
-├── agent/           AiAgent — OpenAI-compatible tool-calling loop
+│                    for editor/thumbnails/GIF/snapshots), Director (offline motion presets),
+│                    GifEncoder, ExportManager, ProjectStore (autosave)
+├── mcp/             ToolRegistry (one execution surface for MCP *and* the controller),
+│                    McpServer (NanoHTTPD, JSON-RPC / Streamable HTTP), AnimationTools
 ├── model/           Document model: frames, layers, elements (stroke / shape / polygon /
-│                    text / raster)
-└── ui/              Compose studio: canvas, tool rail, timeline, colour lab, layers,
-                     agent sheet, settings, export
+│                    text / raster), project file format
+└── ui/              Compose studio: landscape canvas, tool rail, inspector, timeline,
+                     colour lab, layers, MCP panel, settings, export
 ```
 
 ### How 60+ fps stays smooth

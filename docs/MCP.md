@@ -108,6 +108,7 @@ A browser can open `http://<phone-ip>:8420/` for a small landing page, and
 | History & playback | `anymate_undo`, `anymate_redo`, `anymate_play`, `anymate_pause`, `anymate_seek`, `anymate_set_loop`, `anymate_set_onion_skin` |
 | Preview & export | `anymate_snapshot`, `anymate_export_gif`, `anymate_export_png`, `anymate_export_frames` |
 | Directing | `anymate_generate`, `anymate_batch` |
+| Animation | `anymate_draw_curve`, `anymate_motion_path`, `anymate_offset_frame`, `anymate_reorder_frame`, `anymate_merge_layers`, `anymate_get_frame`, `anymate_replace_layer`, `anymate_delete_element`, `anymate_set_grid`, `anymate_set_canvas`, `anymate_set_playback_range`, `anymate_get_render_info`, `anymate_render_sprite_sheet` |
 
 Resources: `anymate://preview/current` (PNG), `anymate://project/state` (JSON).
 Prompts: `direct-an-animation`, `polish-the-scene`.
@@ -138,6 +139,30 @@ the canvas size (default 900 × 900).
     {"name":"anymate_play","args":{}}
   ]}}}
 ```
+
+### Animation recipes
+
+```json
+{"name": "anymate_motion_path", "arguments": {
+  "path": [[120, 700], [400, 260], [760, 620]],
+  "frames": 48, "fps": 24, "shape": "ellipse", "size": 48,
+  "color": "#7C3AED", "easing": "smooth"
+}}
+```
+
+```json
+{"name": "anymate_batch", "arguments": {"calls": [
+  {"name": "anymate_set_grid", "args": {"enabled": true, "spacing": 60}},
+  {"name": "anymate_add_frame", "args": {"copy": true}},
+  {"name": "anymate_draw_curve", "args": {
+    "points": [[100, 600], [300, 300], [500, 600], [700, 300]],
+    "color": "#22D3EE", "width": 6
+  }}
+]}}
+```
+
+`anymate_render_sprite_sheet` returns every frame as one image — the fastest way for a
+model to review a whole animation.
 
 ## 5. Security notes
 
